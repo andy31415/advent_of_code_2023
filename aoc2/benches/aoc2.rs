@@ -1,8 +1,23 @@
-use aoc2::Game;
+use aoc2::{Bag, Game};
 
 fn main() {
     // Run registered benchmarks.
     divan::main();
+}
+
+#[divan::bench]
+fn part1() {
+    let bag = Bag {
+        red: 12,
+        green: 13,
+        blue: 14,
+    };
+    let id_sum: u32 = include_str!("../input.txt")
+        .split('\n')
+        .filter_map(Game::parse)
+        .filter(|g| g.possible(&bag))
+        .map(|g| g.id)
+        .sum();
 }
 
 #[divan::bench]
