@@ -14,8 +14,21 @@ name = "day-02"
 path = "benches/benchmarks.rs"
 harness = false
 
+[profile.release]
+debug = 1
+
+[features]
+dhat-heap = []
+
 [lib]
+
+[dependencies]
+divan = "*"
+dhat = "*"
+# these are not really used, however may be useful in the 
+# future as I am learning
+miette = "*"
+nom = "*"
 
 [dev-dependencies]
 itertools = "*"
-divan = "*"
