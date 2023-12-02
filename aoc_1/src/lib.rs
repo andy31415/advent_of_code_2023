@@ -94,7 +94,9 @@ pub mod calibration {
         }
     }
 
-    /// Iterate digits within a string
+    /// Grab the first and last number from a list of numbers.
+    /// If list of numbers has only one element, first and last will be the
+    /// same value.
     ///     
     /// Example:
     ///
