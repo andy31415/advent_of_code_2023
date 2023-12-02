@@ -29,7 +29,7 @@ I only started dhat and divan in aoc2.
 
 ### Running things
 
-Just `cargo run` and `cargo test` is what I use the most.
+Just `cargo run -p aoc1` and `cargo test` is what I use the most.
 
 - Heap profiling: `cargo run --features dhat-heap`
 - Benchmarking `cargo bench`

@@ -1,5 +1,30 @@
 [workspace]
-
 resolver="2"
-
 members = [ "aoc*" ]
+
+[workspace.dependencies]
+
+glam = "*"
+nom = "*"
+dhat = "*"
+divan = "*"
+thiserror = "*"
+miette = { version = "*", features = ["fancy"] }
+criterion = { version = "*", features = ["html_reports"] }
+petgraph = "*"
+rayon = "*"
+rstest = "*"
+rstest_reuse = "*"
+tracing = "*"
+tracing-subscriber = "*"
+tracing-tracy = "*"
+tracy-client = "*"
+tracy-client-sys = "*"
+
+[profile.flamegraph]
+inherits = "release"
+debug = true
+
+[profile.dhat]
+inherits = "release"
+debug = 1
