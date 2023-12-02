@@ -31,5 +31,6 @@ I only started dhat and divan in aoc2.
 
 Just `cargo run -p aoc1` and `cargo test` is what I use the most.
 
-- Heap profiling: `cargo run --features dhat-heap`
+- Heap profiling: `cargo run --profile dhat --features dhat-heap -p aoc2`
 - Benchmarking `cargo bench`
+- Flamegraph: `cargo flamegraph --profile flamegraph -p aoc2`

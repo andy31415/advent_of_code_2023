@@ -1,3 +1,4 @@
 target
 dhat-heap.json
 perf.data*
+flamegraph.svg

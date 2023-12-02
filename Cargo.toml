@@ -27,4 +27,4 @@ debug = true
 
 [profile.dhat]
 inherits = "release"
-debug = 1
+debug = true
