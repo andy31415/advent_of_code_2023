@@ -7,7 +7,7 @@ fn main() {
 
 #[divan::bench]
 fn part2() {
-   divan::black_box(include_str!("../input.txt"))
+    divan::black_box(include_str!("../input.txt"))
         .split('\n')
         .filter_map(Game::parse)
         .map(|g| g.min_bag().power())

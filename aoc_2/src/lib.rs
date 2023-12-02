@@ -20,7 +20,7 @@ impl Bag {
     pub fn power(&self) -> u32 {
         self.red * self.blue * self.green
     }
-    
+
     pub fn increase_to_allow_reveal(&mut self, r: &Reveal) {
         if self.red < r.red {
             self.red = r.red
@@ -86,7 +86,7 @@ impl Game {
     pub fn possible(&self, bag: &Bag) -> bool {
         self.reveals.iter().all(|r| bag.reveal_possible(r))
     }
-    
+
     pub fn min_bag(&self) -> Bag {
         let mut bag = Bag::default();
         for reveal in self.reveals.iter() {
@@ -94,12 +94,11 @@ impl Game {
         }
         bag
     }
-    
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Game, Reveal, Bag};
+    use crate::{Bag, Game, Reveal};
 
     #[test]
     fn test_into() {
@@ -180,19 +179,34 @@ mod tests {
         bag.increase_to_allow_reveal(&Reveal::from("3 blue, 4 red"));
         bag.increase_to_allow_reveal(&Reveal::from("1 red, 2 green, 6 blue"));
         bag.increase_to_allow_reveal(&Reveal::from("2 green"));
-        
-        assert_eq!(bag, Bag{red: 4, green: 2, blue: 6});
+
+        assert_eq!(
+            bag,
+            Bag {
+                red: 4,
+                green: 2,
+                blue: 6
+            }
+        );
         assert_eq!(bag.power(), 48);
     }
 
     #[test]
     fn test_increase_game4() {
-        let game = Game::parse("Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red").expect("Valid");
+        let game =
+            Game::parse("Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red")
+                .expect("Valid");
         let bag = game.min_bag();
-        assert_eq!(bag, Bag{red: 14, green: 3, blue: 15});
+        assert_eq!(
+            bag,
+            Bag {
+                red: 14,
+                green: 3,
+                blue: 15
+            }
+        );
         assert_eq!(bag.power(), 630);
     }
-    
 
     #[test]
     fn test_reveal() {
