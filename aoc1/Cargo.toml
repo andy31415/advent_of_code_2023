@@ -9,4 +9,4 @@ name="aoc1"
 path="src/aoc1.rs"
 
 [dev-dependencies]
-itertools = "*"
+itertools = {workspace=true}
