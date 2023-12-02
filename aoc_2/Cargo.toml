@@ -9,7 +9,13 @@ edition = "2021"
 name = "aoc"
 path = "src/bin/main.rs"
 
+[[bench]]
+name = "day-02"
+path = "benches/benchmarks.rs"
+harness = false
+
 [lib]
 
 [dev-dependencies]
 itertools = "*"
+divan = "*"
