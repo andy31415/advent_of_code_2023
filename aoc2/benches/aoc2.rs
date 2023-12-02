@@ -12,12 +12,12 @@ fn part1() {
         green: 13,
         blue: 14,
     };
-    let id_sum: u32 = include_str!("../input.txt")
+    divan::black_box(include_str!("../input.txt"))
         .split('\n')
         .filter_map(Game::parse)
         .filter(|g| g.possible(&bag))
         .map(|g| g.id)
-        .sum();
+        .sum::<u32>();
 }
 
 #[divan::bench]
