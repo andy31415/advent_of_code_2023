@@ -1,15 +1,12 @@
 [package]
-name = "aoc_1"
+name = "aoc1"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [[bin]]
-name = "calibration"
-path = "src/bin/main.rs"
-
-[lib]
+name="aoc1"
+path="src/aoc1.rs"
 
 [dev-dependencies]
 itertools = "*"

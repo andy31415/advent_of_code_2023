@@ -1,6 +1,3 @@
-use aoc_1::calibration::first_and_last;
-
-const TEST_DATA: &str = "
 eight9fhstbssrplmdlncmmqqnklb39ninejz
 three656
 ppjvndvknbtpfsncplmhhrlh5
@@ -1001,17 +998,3 @@ scjjr4twoh
 nine35gzmlt
 5sixfour2qxsqkpnq
 kdkjqdkvgs2
-";
-
-fn main() {
-    println!("Testing");
-
-    let total: i32 = TEST_DATA
-        .split('\n')
-        .map(aoc_1::calibration::DigitIterator::new)
-        .map(|d| first_and_last(d.iterate_digits()))
-        .filter_map(|digits| digits.map(|(first, last)| first * 10 + last))
-        .sum();
-
-    println!("SUM is: {}", total);
-}

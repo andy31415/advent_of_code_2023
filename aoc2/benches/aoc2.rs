@@ -1,4 +1,4 @@
-use aoc::Game;
+use aoc2::Game;
 
 fn main() {
     // Run registered benchmarks.

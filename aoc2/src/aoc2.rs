@@ -1,4 +1,4 @@
-use aoc::Game;
+use aoc2::Game;
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -10,7 +10,7 @@ fn main() {
 
     println!("Testing");
 
-    let id_sum: u32 = include_str!("../../input.txt")
+    let id_sum: u32 = include_str!("../input.txt")
         .split('\n')
         .filter_map(Game::parse)
         .map(|g| g.min_bag().power())
