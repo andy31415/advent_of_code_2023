@@ -23,6 +23,8 @@ dhat-heap = []
 [dependencies]
 divan = {workspace=true}
 dhat = {workspace=true}
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
 itertools = {workspace=true}
