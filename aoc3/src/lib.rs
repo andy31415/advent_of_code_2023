@@ -161,14 +161,33 @@ mod tests {
             .trim()
     }
 
+    #[test]
     fn test_adjacency() {
         let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(get_example_schematic())
             .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
-        
 
-        eprintln!("SYM: {:?}", symbols);
-        eprintln!("NR: {:?}", numbers);
-        assert_eq!(2+2, 5);
+        // find all part numbers without a symbol
+        assert_eq!(
+            numbers
+                .iter()
+                .filter(|n| !symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
+                .map(|p| p.item_type)
+                .collect::<Vec<_>>(),
+            [ItemType::PartNumber(114), ItemType::PartNumber(58),]
+        );
+
+        // sum all parts wit h a symbol
+        assert_eq!(
+            numbers
+                .iter()
+                .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
+                .filter_map(|p| match p.item_type {
+                    ItemType::PartNumber(n) => Some(n),
+                    _ => panic!("Should only have part numbers here"),
+                })
+                .sum::<u32>(),
+            4361
+        );
     }
 
     #[test]
