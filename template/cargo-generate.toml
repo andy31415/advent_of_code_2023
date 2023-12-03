@@ -1,0 +1,8 @@
+[template]
+cargo_generate_version = "0.10.0"
+
+[hooks]
+[hooks]
+#init = [...]
+#pre = [...]
+post = ["renames.rhai"]
