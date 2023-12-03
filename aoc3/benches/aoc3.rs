@@ -1,3 +1,5 @@
+use aoc2::{Bag, Game};
+
 fn main() {
     // Run registered benchmarks.
     divan::main();

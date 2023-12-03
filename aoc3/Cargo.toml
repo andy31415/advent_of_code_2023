@@ -1,17 +1,17 @@
 [package]
-name = "template"
+name = "aoc3"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name="aocn"
-path="src/aocn.rs"
+name="aoc3"
+path="src/aoc3.rs"
 
 [[bench]]
-name="aocn"
-path="benches/aocn.rs"
+name="aoc2"
+path="benches/aoc3.rs"
 harness = false
 
 [features]
