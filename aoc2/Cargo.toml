@@ -14,9 +14,6 @@ name="aoc2"
 path="benches/aoc2.rs"
 harness = false
 
-[profile.release]
-debug = 1
-
 [features]
 dhat-heap = []
 
