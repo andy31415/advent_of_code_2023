@@ -15,7 +15,7 @@ pub struct PartItem {
 }
 
 impl PartItem {
-    pub fn is_adjacent_part_number(&self, symbol: PartItem) -> bool {
+    pub fn is_adjacent_part_number(&self, symbol: &PartItem) -> bool {
         // we only consider symbols
         assert!(matches!(symbol.item_type, ItemType::Symbol(_)));
         assert!(symbol.len == 1);
@@ -30,7 +30,7 @@ impl PartItem {
         }
 
         // should be within range
-        (symbol.col + 1 >= self.col) && (symbol.col <= self.col + self.len + 1)
+        (symbol.col + 1 >= self.col) && (symbol.col <= self.col + self.len)
     }
 }
 
@@ -143,23 +143,55 @@ where
     }
 }
 
-pub fn part_1_sum_parts(input: &str) -> u32 {
+pub struct Part {
+    pub number: u32,
+    pub symbol: char,
+}
+
+pub fn parts(input: &str) -> Vec<Part> {
     let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(input)
         .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
 
-    numbers
-        .iter()
-        .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
-        .map(|p| match p.item_type {
-            ItemType::PartNumber(n) => n,
-            _ => panic!("Should only have part numbers here"),
-        })
-        .sum()
+    let mut result = Vec::new();
+
+    for n in numbers {
+        let s = symbols
+            .iter()
+            .filter(|s| n.is_adjacent_part_number(s))
+            .collect::<Vec<_>>();
+
+        match s.len() {
+            0 => {}
+            1 => match (n, s.get(0)) {
+                (
+                    PartItem {
+                        item_type: ItemType::PartNumber(number),
+                        ..
+                    },
+                    Some(PartItem {
+                        item_type: ItemType::Symbol(symbol),
+                        ..
+                    }),
+                ) => result.push(Part {
+                    number,
+                    symbol: *symbol,
+                }),
+                _ => panic!("Unexpected state"),
+            },
+            _ => panic!("Multiple symbols for a single part {:?}: {:#?}!", n, s),
+        }
+    }
+
+    result
+}
+
+pub fn part_1_sum_parts(input: &str) -> u32 {
+    parts(input).iter().map(|p| p.number).sum()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ItemType, PartItem, PartItemIterator, part_1_sum_parts};
+    use crate::{part_1_sum_parts, ItemType, PartItem, PartItemIterator};
 
     fn get_example_schematic() -> &'static str {
         "467..114..
@@ -184,7 +216,7 @@ mod tests {
         assert_eq!(
             numbers
                 .iter()
-                .filter(|n| !symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
+                .filter(|n| !symbols.iter().any(|s| n.is_adjacent_part_number(s)))
                 .map(|p| p.item_type)
                 .collect::<Vec<_>>(),
             [ItemType::PartNumber(114), ItemType::PartNumber(58),]
@@ -194,7 +226,7 @@ mod tests {
         assert_eq!(
             numbers
                 .iter()
-                .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
+                .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(s)))
                 .map(|p| match p.item_type {
                     ItemType::PartNumber(n) => n,
                     _ => panic!("Should only have part numbers here"),
@@ -366,26 +398,29 @@ mod tests {
             line: 10,
             col: 10,
         };
-        
-        let sym = |line: u32, col: u32| {
-            PartItem{item_type: ItemType::Symbol('x'), len: 1, line, col}
+
+        let sym = |line: u32, col: u32| PartItem {
+            item_type: ItemType::Symbol('x'),
+            len: 1,
+            line,
+            col,
         };
-        
+
         for line in 9..=11 {
             for col in 9..=13 {
-                assert!(n.is_adjacent_part_number(sym(line, col)))
+                assert!(n.is_adjacent_part_number(&sym(line, col)))
             }
         }
 
         for line in 0..=8 {
             for col in 0..=20 {
-                assert!(!n.is_adjacent_part_number(sym(line, col)))
+                assert!(!n.is_adjacent_part_number(&sym(line, col)))
             }
         }
 
         for line in 12..=20 {
             for col in 0..=20 {
-                assert!(!n.is_adjacent_part_number(sym(line, col)))
+                assert!(!n.is_adjacent_part_number(&sym(line, col)))
             }
         }
     }
