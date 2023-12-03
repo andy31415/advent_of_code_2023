@@ -1,3 +1,5 @@
+use aoc3::part_1_sum_parts;
+
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
@@ -7,7 +9,8 @@ fn main() {
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
 
-    println!("Part 1:");
+    let s = part_1_sum_parts(include_str!("../input.txt"));
+    println!("Part 1: {}", s);
 
     println!("Part 2:");
 }

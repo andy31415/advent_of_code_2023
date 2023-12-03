@@ -143,6 +143,20 @@ where
     }
 }
 
+pub fn part_1_sum_parts(input: &str) -> u32 {
+    let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(input)
+        .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
+
+    numbers
+        .iter()
+        .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
+        .map(|p| match p.item_type {
+            ItemType::PartNumber(n) => n,
+            _ => panic!("Should only have part numbers here"),
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{ItemType, PartItem, PartItemIterator};
@@ -181,8 +195,8 @@ mod tests {
             numbers
                 .iter()
                 .filter(|n| symbols.iter().any(|s| n.is_adjacent_part_number(*s)))
-                .filter_map(|p| match p.item_type {
-                    ItemType::PartNumber(n) => Some(n),
+                .map(|p| match p.item_type {
+                    ItemType::PartNumber(n) => n,
                     _ => panic!("Should only have part numbers here"),
                 })
                 .sum::<u32>(),
