@@ -243,29 +243,15 @@ pub fn part_2_sum_gear_ratios(input: &str) -> u32 {
 mod tests {
     use crate::*;
 
-    fn get_example_schematic() -> &'static str {
-        "467..114..
-...*......
-..35..633.
-......#...
-617*......
-.....+.58.
-..592.....
-......755.
-...$.*....
-.664.598.."
-            .trim()
-    }
-
     #[test]
     fn test_gears() {
         assert_eq!(
-            gears(get_example_schematic()),
+            gears(include_str!("../example.txt")),
             [Gear { n1: 467, n2: 35 }, Gear { n1: 755, n2: 598 }]
         );
 
         assert_eq!(
-            gears(get_example_schematic())
+            gears(include_str!("../example.txt"))
                 .iter()
                 .map(|g| g.ratio())
                 .sum::<u32>(),
@@ -275,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_adjacency() {
-        let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(get_example_schematic())
+        let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(include_str!("../example.txt"))
             .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
 
         // find all part numbers without a symbol
@@ -301,13 +287,13 @@ mod tests {
             4361
         );
 
-        assert_eq!(part_1_sum_parts(get_example_schematic()), 4361);
+        assert_eq!(part_1_sum_parts(include_str!("../example.txt")), 4361);
     }
 
     #[test]
     fn parse_example() {
         assert_eq!(
-            PartItemIterator::new(get_example_schematic()),
+            PartItemIterator::new(include_str!("../example.txt")),
             [
                 PartItem {
                     line: 0,
