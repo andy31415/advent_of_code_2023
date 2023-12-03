@@ -159,7 +159,7 @@ pub fn part_1_sum_parts(input: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ItemType, PartItem, PartItemIterator};
+    use crate::{ItemType, PartItem, PartItemIterator, part_1_sum_parts};
 
     fn get_example_schematic() -> &'static str {
         "467..114..
@@ -202,6 +202,8 @@ mod tests {
                 .sum::<u32>(),
             4361
         );
+
+        assert_eq!(part_1_sum_parts(get_example_schematic()), 4361);
     }
 
     #[test]
