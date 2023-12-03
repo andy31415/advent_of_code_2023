@@ -14,6 +14,26 @@ pub struct PartItem {
     len: u32,
 }
 
+impl PartItem {
+    pub fn is_adjacent_part_number(&self, symbol: PartItem) -> bool {
+        // we only consider symbols
+        assert!(matches!(symbol.item_type, ItemType::Symbol(_)));
+        assert!(symbol.len == 1);
+
+        // adjacent to part numbers
+        assert!(matches!(self.item_type, ItemType::PartNumber(_)));
+
+        // Positions have to be in the entire range around the part item
+        // First line has to match +-1
+        if (symbol.line + 1 < self.line) || (symbol.line > self.line + 1) {
+            return false;
+        }
+
+        // should be within range
+        (symbol.col + 1 >= self.col) && (symbol.col <= self.col + self.len + 1)
+    }
+}
+
 #[derive(Clone)]
 pub struct PartItemIterator<'a> {
     rest: std::iter::Peekable<Chars<'a>>,
@@ -139,6 +159,16 @@ mod tests {
 ...$.*....
 .664.598.."
             .trim()
+    }
+
+    fn test_adjacency() {
+        let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(get_example_schematic())
+            .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
+        
+
+        eprintln!("SYM: {:?}", symbols);
+        eprintln!("NR: {:?}", numbers);
+        assert_eq!(2+2, 5);
     }
 
     #[test]
