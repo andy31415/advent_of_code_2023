@@ -359,6 +359,38 @@ mod tests {
     }
 
     #[test]
+    fn adjacent_test() {
+        let n = PartItem {
+            item_type: ItemType::PartNumber(123),
+            len: 3,
+            line: 10,
+            col: 10,
+        };
+        
+        let sym = |line: u32, col: u32| {
+            PartItem{item_type: ItemType::Symbol('x'), len: 1, line, col}
+        };
+        
+        for line in 9..=11 {
+            for col in 9..=13 {
+                assert!(n.is_adjacent_part_number(sym(line, col)))
+            }
+        }
+
+        for line in 0..=8 {
+            for col in 0..=20 {
+                assert!(!n.is_adjacent_part_number(sym(line, col)))
+            }
+        }
+
+        for line in 12..=20 {
+            for col in 0..=20 {
+                assert!(!n.is_adjacent_part_number(sym(line, col)))
+            }
+        }
+    }
+
+    #[test]
     fn parse_parts() {
         assert!(PartItemIterator::new("").eq([]));
 
