@@ -143,6 +143,7 @@ where
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Part {
     pub number: u32,
     pub symbol: char,
@@ -181,7 +182,53 @@ pub fn parts(input: &str) -> Vec<Part> {
             _ => panic!("Multiple symbols for a single part {:?}: {:#?}!", n, s),
         }
     }
+    result
+}
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Gear {
+    pub n1: u32,
+    pub n2: u32,
+}
+
+impl Gear {
+    pub fn ratio(&self) -> u32 {
+        self.n1 * self.n2
+    }
+}
+
+
+pub fn gears(input: &str) -> Vec<Gear> {
+    let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(input)
+        .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
+
+    let mut result = Vec::new();
+
+    for s in symbols
+        .iter()
+        .filter(|s| s.item_type == ItemType::Symbol('*'))
+    {
+        // Find all numbers that are associated to this symbol
+        let n = numbers
+            .iter()
+            .filter_map(|n| {
+                if !n.is_adjacent_part_number(s) {
+                    return None;
+                }
+                match n.item_type {
+                    ItemType::PartNumber(n) => Some(n),
+                    _ => panic!("expecting only part numbers"),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if n.len() == 2 {
+            result.push(Gear {
+                n1: *n.get(0).unwrap(),
+                n2: *n.get(1).unwrap(),
+            })
+        }
+    }
     result
 }
 
@@ -189,9 +236,13 @@ pub fn part_1_sum_parts(input: &str) -> u32 {
     parts(input).iter().map(|p| p.number).sum()
 }
 
+pub fn part_2_sum_gear_ratios(input: &str) -> u32 {
+    gears(input).iter().map(|g| g.ratio()).sum()
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{part_1_sum_parts, ItemType, PartItem, PartItemIterator};
+    use crate::*;
 
     fn get_example_schematic() -> &'static str {
         "467..114..
@@ -205,6 +256,19 @@ mod tests {
 ...$.*....
 .664.598.."
             .trim()
+    }
+
+    #[test]
+    fn test_gears() {
+        assert_eq!(
+            gears(get_example_schematic()),
+            [Gear { n1: 467, n2: 35 }, Gear { n1: 755, n2: 598 }]
+        );
+
+        assert_eq!(
+            gears(get_example_schematic()).iter().map(|g| g.ratio()).sum::<u32>(),
+            467835
+        );
     }
 
     #[test]
@@ -408,19 +472,25 @@ mod tests {
 
         for line in 9..=11 {
             for col in 9..=13 {
-                assert!(n.is_adjacent_part_number(&sym(line, col)))
+                assert!(n.is_adjacent_part_number(&sym(line, col)));
+            }
+            for col in 0..=8 {
+                assert!(!n.is_adjacent_part_number(&sym(line, col)));
+            }
+            for col in 14..=20 {
+                assert!(!n.is_adjacent_part_number(&sym(line, col)));
             }
         }
 
         for line in 0..=8 {
             for col in 0..=20 {
-                assert!(!n.is_adjacent_part_number(&sym(line, col)))
+                assert!(!n.is_adjacent_part_number(&sym(line, col)));
             }
         }
 
         for line in 12..=20 {
             for col in 0..=20 {
-                assert!(!n.is_adjacent_part_number(&sym(line, col)))
+                assert!(!n.is_adjacent_part_number(&sym(line, col)));
             }
         }
     }
