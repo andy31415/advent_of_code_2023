@@ -197,7 +197,6 @@ impl Gear {
     }
 }
 
-
 pub fn gears(input: &str) -> Vec<Gear> {
     let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(input)
         .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
@@ -224,8 +223,8 @@ pub fn gears(input: &str) -> Vec<Gear> {
 
         if n.len() == 2 {
             result.push(Gear {
-                n1: *n.get(0).unwrap(),
-                n2: *n.get(1).unwrap(),
+                n1: *n.first().unwrap(),
+                n2: *n.last().unwrap(),
             })
         }
     }
@@ -266,7 +265,10 @@ mod tests {
         );
 
         assert_eq!(
-            gears(get_example_schematic()).iter().map(|g| g.ratio()).sum::<u32>(),
+            gears(get_example_schematic())
+                .iter()
+                .map(|g| g.ratio())
+                .sum::<u32>(),
             467835
         );
     }
