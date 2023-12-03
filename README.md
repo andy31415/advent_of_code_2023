@@ -6,6 +6,20 @@ This is my fun project for going through
 I will be using rust and will try to make reasonable code (i.e
 unit testing and will have cargo and clippy passing)
 
+### Setting up
+
+I created a `template` subfolder to get started on a new day.
+
+Run `cargo generate --path template` to generate a new day.
+Use the project name like `aoc123` for each new day
+
+### Running things
+
+Just `cargo run -p aoc1` and `cargo test` is what I use the most.
+
+- Heap profiling: `cargo run --profile dhat --features dhat-heap -p aoc2`
+- Benchmarking `cargo bench`
+- Flamegraph: `cargo flamegraph --profile flamegraph -p aoc2`
 
 ### Learning bits
 
@@ -27,10 +41,3 @@ And I have not yet used but may:
 
 I only started dhat and divan in aoc2.
 
-### Running things
-
-Just `cargo run -p aoc1` and `cargo test` is what I use the most.
-
-- Heap profiling: `cargo run --profile dhat --features dhat-heap -p aoc2`
-- Benchmarking `cargo bench`
-- Flamegraph: `cargo flamegraph --profile flamegraph -p aoc2`
