@@ -31,17 +31,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoc100"
-version = "0.1.0"
-dependencies = [
- "dhat",
- "divan",
- "itertools",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "aoc2"
 version = "0.1.0"
 dependencies = [

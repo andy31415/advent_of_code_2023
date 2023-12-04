@@ -239,9 +239,88 @@ pub fn part_2_sum_gear_ratios(input: &str) -> u32 {
     gears(input).iter().map(|g| g.ratio()).sum()
 }
 
+//////// Totaly alternate implementation
+pub struct Board {
+    lines: Vec<Vec<char>>,
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct SymbolPos {
+    pub symbol: char,
+    pub line: usize,
+    pub col: usize,
+}
+
+impl Board {
+    pub fn new(data: &str) -> Board {
+        Board {
+            lines: data.split('\n').map(|l| l.chars().collect()).collect(),
+        }
+    }
+
+    pub fn symbols(&self) -> Vec<SymbolPos> {
+        self.lines
+            .iter()
+            .enumerate()
+            .flat_map(|(line, data)| {
+                data.iter().enumerate().filter_map(move |(col, ch)| {
+                    if ch.is_ascii_digit() || *ch == '.' {
+                        None
+                    } else {
+                        Some(SymbolPos {
+                            symbol: *ch,
+                            line,
+                            col,
+                        })
+                    }
+                })
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[test]
+    fn test_symbols() {
+        assert_eq!(
+            Board::new(include_str!("../example.txt")).symbols(),
+            [
+                SymbolPos {
+                    symbol: '*',
+                    line: 1,
+                    col: 3
+                },
+                SymbolPos {
+                    symbol: '#',
+                    line: 3,
+                    col: 6
+                },
+                SymbolPos {
+                    symbol: '*',
+                    line: 4,
+                    col: 3
+                },
+                SymbolPos {
+                    symbol: '+',
+                    line: 5,
+                    col: 5
+                },
+                SymbolPos {
+                    symbol: '$',
+                    line: 8,
+                    col: 3
+                },
+                SymbolPos {
+                    symbol: '*',
+                    line: 8,
+                    col: 5
+                },
+            ]
+        );
+    }
 
     #[test]
     fn test_gears() {
