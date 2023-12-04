@@ -1,4 +1,7 @@
-use aoc3::{part_1_sum_parts, part_2_sum_gear_ratios, alternate_part_1_sum_parts, alternate_part_2_sum_gear_ratios};
+use aoc3::{
+    alternate_part_1_sum_parts, alternate_part_2_sum_gear_ratios, part_1_sum_parts,
+    part_2_sum_gear_ratios,
+};
 
 fn main() {
     // Run registered benchmarks.

@@ -374,7 +374,7 @@ pub fn alternate_part_2_sum_gear_ratios(input: &str) -> u32 {
     let mut power_sum = 0;
     for symbol in board.symbols() {
         if symbol.symbol != '*' {
-            continue
+            continue;
         }
         let labels = board.labels_around(symbol.line, symbol.col);
         if labels.len() != 2 {
@@ -388,7 +388,6 @@ pub fn alternate_part_2_sum_gear_ratios(input: &str) -> u32 {
     }
     power_sum
 }
-
 
 #[cfg(test)]
 mod tests {
