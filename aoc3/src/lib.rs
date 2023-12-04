@@ -251,6 +251,15 @@ pub struct SymbolPos {
     pub col: usize,
 }
 
+/// A very simple label within a line
+/// containing the start position within the string
+/// and the content
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
+pub struct PartLabel {
+    pub start: usize,
+    pub label: u32,
+}
+
 impl Board {
     pub fn new(data: &str) -> Board {
         Board {
@@ -277,11 +286,78 @@ impl Board {
             })
             .collect::<Vec<_>>()
     }
+
+    pub fn part_label_at(&self, line: usize, col: usize) -> Option<PartLabel> {
+        let line = self.lines.get(line)?;
+
+        if col > line.len() {
+            return None;
+        }
+
+        if !line.get(col)?.is_ascii_digit() {
+            return None;
+        }
+
+        // we have a digit. Go backwards while we have a digit
+        let mut start = col;
+        while start > 0 && line.get(start - 1).expect("valid index").is_ascii_digit() {
+            start -= 1;
+        }
+
+        let mut end = col;
+        while line.get(end + 1).unwrap_or(&'.').is_ascii_digit() {
+            end += 1;
+        }
+
+        let string_label: String = line[start..=end].iter().collect();
+
+        Some(PartLabel {
+            start,
+            label: string_label
+                .parse::<u32>()
+                .expect("valid digits already checked"),
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[test]
+    fn test_labels() {
+        let board = Board::new(include_str!("../example.txt"));
+        assert_eq!(
+            board.part_label_at(0, 0),
+            Some(PartLabel {
+                start: 0,
+                label: 467
+            })
+        );
+        assert_eq!(
+            board.part_label_at(0, 1),
+            Some(PartLabel {
+                start: 0,
+                label: 467
+            })
+        );
+        assert_eq!(
+            board.part_label_at(0, 2),
+            Some(PartLabel {
+                start: 0,
+                label: 467
+            })
+        );
+        assert_eq!(board.part_label_at(0, 3), None);
+        assert_eq!(board.part_label_at(5, 1), None);
+        assert_eq!(
+            board.part_label_at(6, 2),
+            Some(PartLabel {
+                start: 2,
+                label: 592
+            })
+        );
+    }
 
     #[test]
     fn test_symbols() {
