@@ -261,8 +261,9 @@ mod tests {
 
     #[test]
     fn test_adjacency() {
-        let (symbols, numbers): (Vec<_>, Vec<_>) = PartItemIterator::new(include_str!("../example.txt"))
-            .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
+        let (symbols, numbers): (Vec<_>, Vec<_>) =
+            PartItemIterator::new(include_str!("../example.txt"))
+                .partition(|part| matches!(part.item_type, ItemType::Symbol(_)));
 
         // find all part numbers without a symbol
         assert_eq!(
