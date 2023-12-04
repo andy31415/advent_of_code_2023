@@ -24,6 +24,11 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
 }
 
 impl Card {
+    pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
+        lines.split("\n")
+            .map(Card::parse)
+            .collect()
+    }
     pub fn parse(line: &str) -> Result<Self, String> {
         let mut parser = tuple((
             tag("Card "),
@@ -54,6 +59,18 @@ mod tests {
     fn test_parse_spaced_numbers() {
         assert_eq!(spaced_numbers("1 2 3 4"), Ok(("", vec![1, 2, 3, 4])));
         assert_eq!(spaced_numbers("1 2 | a b c"), Ok((" | a b c", vec![1, 2])));
+    }
+
+    #[test]
+    fn test_parse_many() {
+        let cards = Card::parse_many(include_str!("../example.txt")).expect("Valid example");
+
+        assert_eq!(cards.len(), 6);
+        assert_eq!(cards.get(1), Some(Card{
+                num: 2,
+                winning: vec![],
+                actual: vec![],
+        }));
     }
 
     #[test]
