@@ -1,4 +1,8 @@
-use std::{fmt::Debug, str::Chars};
+use std::{
+    collections::{hash_set, HashSet},
+    fmt::Debug,
+    str::Chars,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum ItemType {
@@ -254,8 +258,9 @@ pub struct SymbolPos {
 /// A very simple label within a line
 /// containing the start position within the string
 /// and the content
-#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord, Hash)]
 pub struct PartLabel {
+    pub line: usize,
     pub start: usize,
     pub label: u32,
 }
@@ -288,35 +293,65 @@ impl Board {
     }
 
     pub fn part_label_at(&self, line: usize, col: usize) -> Option<PartLabel> {
-        let line = self.lines.get(line)?;
+        let line_vec = self.lines.get(line)?;
 
-        if col > line.len() {
+        if col > line_vec.len() {
             return None;
         }
 
-        if !line.get(col)?.is_ascii_digit() {
+        if !line_vec.get(col)?.is_ascii_digit() {
             return None;
         }
 
         // we have a digit. Go backwards while we have a digit
         let mut start = col;
-        while start > 0 && line.get(start - 1).expect("valid index").is_ascii_digit() {
+        while start > 0 && line_vec.get(start - 1).expect("valid index").is_ascii_digit() {
             start -= 1;
         }
 
         let mut end = col;
-        while line.get(end + 1).unwrap_or(&'.').is_ascii_digit() {
+        while line_vec.get(end + 1).unwrap_or(&'.').is_ascii_digit() {
             end += 1;
         }
 
-        let string_label: String = line[start..=end].iter().collect();
+        let string_label: String = line_vec[start..=end].iter().collect();
 
         Some(PartLabel {
+            line,
             start,
             label: string_label
                 .parse::<u32>()
                 .expect("valid digits already checked"),
         })
+    }
+
+    pub fn labels_around(&self, line: usize, col: usize) -> HashSet<PartLabel> {
+        // Possible positions around a point
+        let deltas = [
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+            (0, -1),
+            (0, 1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+        ];
+
+        let mut result = HashSet::new();
+
+        for (dl, dc) in deltas {
+            let check_line = line as i32 + dl;
+            let check_col = col as i32 + dc;
+
+            if check_line >= 0 && check_col >= 0 {
+                if let Some(label) = self.part_label_at(check_line as usize, check_col as usize) {
+                    result.insert(label);
+                }
+            }
+        }
+
+        result
     }
 }
 
@@ -325,11 +360,35 @@ mod tests {
     use crate::*;
 
     #[test]
+    fn test_labels_around() {
+        let board = Board::new(include_str!("../example.txt"));
+
+        assert_eq!(
+            board.labels_around(1, 3),
+            vec![
+                PartLabel {
+                    line: 0,
+                    start: 0,
+                    label: 467
+                },
+                PartLabel {
+                    line: 2,
+                    start: 2,
+                    label: 35
+                },
+            ]
+            .into_iter()
+            .collect()
+        )
+    }
+
+    #[test]
     fn test_labels() {
         let board = Board::new(include_str!("../example.txt"));
         assert_eq!(
             board.part_label_at(0, 0),
             Some(PartLabel {
+                line: 0,
                 start: 0,
                 label: 467
             })
@@ -337,6 +396,7 @@ mod tests {
         assert_eq!(
             board.part_label_at(0, 1),
             Some(PartLabel {
+                line: 0,
                 start: 0,
                 label: 467
             })
@@ -344,6 +404,7 @@ mod tests {
         assert_eq!(
             board.part_label_at(0, 2),
             Some(PartLabel {
+                line: 0,
                 start: 0,
                 label: 467
             })
@@ -353,6 +414,7 @@ mod tests {
         assert_eq!(
             board.part_label_at(6, 2),
             Some(PartLabel {
+                line: 6,
                 start: 2,
                 label: 592
             })
