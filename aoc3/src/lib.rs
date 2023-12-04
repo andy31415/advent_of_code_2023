@@ -360,6 +360,8 @@ pub fn alternate_part_1_sum_parts(input: &str) -> u32 {
     let mut data = HashSet::new();
     let board = Board::new(input);
 
+    // separate inserts to only count labels once even if they seem
+    // attached to separate parts.
     for symbol in board.symbols() {
         for label in board.labels_around(symbol.line, symbol.col) {
             data.insert(label);
