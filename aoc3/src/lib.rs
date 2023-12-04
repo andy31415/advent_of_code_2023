@@ -1,8 +1,4 @@
-use std::{
-    collections::{hash_set, HashSet},
-    fmt::Debug,
-    str::Chars,
-};
+use std::{collections::HashSet, fmt::Debug, str::Chars};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum ItemType {
@@ -305,7 +301,12 @@ impl Board {
 
         // we have a digit. Go backwards while we have a digit
         let mut start = col;
-        while start > 0 && line_vec.get(start - 1).expect("valid index").is_ascii_digit() {
+        while start > 0
+            && line_vec
+                .get(start - 1)
+                .expect("valid index")
+                .is_ascii_digit()
+        {
             start -= 1;
         }
 
