@@ -1,4 +1,4 @@
-use aoc3::{part_1_sum_parts, part_2_sum_gear_ratios};
+use aoc3::{part_1_sum_parts, part_2_sum_gear_ratios, alternate_part_1_sum_parts, alternate_part_2_sum_gear_ratios};
 
 fn main() {
     // Run registered benchmarks.
@@ -13,4 +13,14 @@ fn part1() {
 #[divan::bench]
 fn part2() {
     part_2_sum_gear_ratios(divan::black_box(include_str!("../input.txt")));
+}
+
+#[divan::bench]
+fn alternate_part1() {
+    alternate_part_1_sum_parts(divan::black_box(include_str!("../input.txt")));
+}
+
+#[divan::bench]
+fn alternate_part2() {
+    alternate_part_2_sum_gear_ratios(divan::black_box(include_str!("../input.txt")));
 }

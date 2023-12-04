@@ -356,6 +356,40 @@ impl Board {
     }
 }
 
+pub fn alternate_part_1_sum_parts(input: &str) -> u32 {
+    let mut data = HashSet::new();
+    let board = Board::new(input);
+
+    for symbol in board.symbols() {
+        for label in board.labels_around(symbol.line, symbol.col) {
+            data.insert(label);
+        }
+    }
+    data.iter().map(|l| l.label).sum()
+}
+
+pub fn alternate_part_2_sum_gear_ratios(input: &str) -> u32 {
+    let board = Board::new(input);
+
+    let mut power_sum = 0;
+    for symbol in board.symbols() {
+        if symbol.symbol != '*' {
+            continue
+        }
+        let labels = board.labels_around(symbol.line, symbol.col);
+        if labels.len() != 2 {
+            continue;
+        }
+        let mut power = 1;
+        for x in labels {
+            power *= x.label;
+        }
+        power_sum += power;
+    }
+    power_sum
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::*;
