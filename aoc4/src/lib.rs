@@ -25,9 +25,7 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
 
 impl Card {
     pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
-        lines.split("\n")
-            .map(Card::parse)
-            .collect()
+        lines.split("\n").map(Card::parse).collect()
     }
     pub fn parse(line: &str) -> Result<Self, String> {
         let mut parser = tuple((
@@ -66,11 +64,14 @@ mod tests {
         let cards = Card::parse_many(include_str!("../example.txt")).expect("Valid example");
 
         assert_eq!(cards.len(), 6);
-        assert_eq!(cards.get(1), Some(Card{
+        assert_eq!(
+            cards.get(1),
+            Some(&Card {
                 num: 2,
-                winning: vec![],
-                actual: vec![],
-        }));
+                winning: vec![13, 32, 20, 16, 61],
+                actual: vec![61, 30, 68, 82, 17, 32, 24, 19],
+            })
+        );
     }
 
     #[test]
@@ -83,7 +84,7 @@ mod tests {
                 actual: vec![4, 5, 6],
             })
         );
-        
+
         assert_eq!(
             Card::parse("Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83"),
             Ok(Card {
