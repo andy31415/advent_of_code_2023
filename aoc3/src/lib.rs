@@ -310,12 +310,10 @@ impl Board {
             start -= 1;
         }
 
-        let mut end = col;
-        while line_vec.get(end + 1).unwrap_or(&'.').is_ascii_digit() {
-            end += 1;
-        }
-
-        let string_label: String = line_vec[start..=end].iter().collect();
+        let string_label: String = line_vec[start..]
+            .iter()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
 
         Some(PartLabel {
             line,
