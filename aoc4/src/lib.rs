@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use nom::{
     bytes::complete::tag,
     character::complete::{digit1, space0},
@@ -9,8 +11,8 @@ use nom::{
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Card {
     pub num: u32,
-    pub winning: Vec<u32>,
-    pub actual: Vec<u32>,
+    pub winning: HashSet<u32>,
+    pub actual: HashSet<u32>,
 }
 
 fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
@@ -27,6 +29,7 @@ impl Card {
     pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
         lines.split("\n").map(Card::parse).collect()
     }
+    
     pub fn parse(line: &str) -> Result<Self, String> {
         let mut parser = tuple((
             tag("Card "),
@@ -38,14 +41,18 @@ impl Card {
         ))
         .map(|(_, id, _, winning, _, actual)| Card {
             num: id.parse::<u32>().expect("valid digits"),
-            winning,
-            actual,
+            winning: HashSet::from_iter(winning),
+            actual: HashSet::from_iter(actual),
         });
 
         match parser.parse(line) {
             Err(e) => Err(format!("Error parsing: {:?}", e).into()),
             Ok(v) => Ok(v.1),
         }
+    }
+    
+    pub fn points(&self) -> usize {
+        self.winning.intersection(&self.actual).count()
     }
 }
 
@@ -68,8 +75,8 @@ mod tests {
             cards.get(1),
             Some(&Card {
                 num: 2,
-                winning: vec![13, 32, 20, 16, 61],
-                actual: vec![61, 30, 68, 82, 17, 32, 24, 19],
+                winning: HashSet::from_iter(vec![13, 32, 20, 16, 61]),
+                actual: HashSet::from_iter(vec![61, 30, 68, 82, 17, 32, 24, 19]),
             })
         );
     }
@@ -80,8 +87,8 @@ mod tests {
             Card::parse("Card 1: 1 2 3 | 4 5 6"),
             Ok(Card {
                 num: 1,
-                winning: vec![1, 2, 3],
-                actual: vec![4, 5, 6],
+                winning: HashSet::from_iter(vec![1, 2, 3]),
+                actual: HashSet::from_iter(vec![4, 5, 6]),
             })
         );
 
@@ -89,8 +96,8 @@ mod tests {
             Card::parse("Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83"),
             Ok(Card {
                 num: 4,
-                winning: vec![41, 92, 73, 84, 69],
-                actual: vec![59, 84, 76, 51, 58, 5, 54, 83],
+                winning: HashSet::from_iter(vec![41, 92, 73, 84, 69]),
+                actual: HashSet::from_iter(vec![59, 84, 76, 51, 58, 5, 54, 83]),
             })
         );
     }
