@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use nom::{
     bytes::complete::tag,
     character::complete::{digit1, space0, space1},
-    multi::many1,
+    multi::{many1, separated_list1},
+    number::complete,
     sequence::tuple,
     IResult, Parser,
 };
@@ -16,13 +17,15 @@ pub struct Card {
 }
 
 fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
-    many1(
-        tuple((
-            space0,                                                              // at start
-            digit1.map(|span: &str| span.parse::<u32>().expect("Valid digits")), // and numbers after
-        ))
-        .map(|(_, digits)| digits),
-    )(data)
+    tuple((
+        space0,
+        separated_list1(
+            space1,
+            digit1.map(|d: &str| d.parse::<u32>().expect("valid number")),
+        ),
+    ))
+    .map(|(_, digits)| digits)
+    .parse(data)
 }
 
 impl Card {
