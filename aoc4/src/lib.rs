@@ -59,9 +59,9 @@ impl Card {
     }
 
     pub fn points(&self) -> usize {
-        match self.wins() {
-            0 => 0,
-            cnt => 1 << (cnt - 1),
+        match self.wins().checked_sub(1) {
+            None => 0,
+            Some(cnt) => 1 << cnt,
         }
     }
 }
