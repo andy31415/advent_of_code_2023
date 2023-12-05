@@ -83,9 +83,7 @@ pub fn part_2_sum_cards(lines: &str) -> usize {
     let mut counts: Vec<usize> = Vec::with_capacity(cards.len());
 
     // buy one card each time
-    for _ in 0..cards.len() {
-        counts.push(1);
-    }
+    counts.resize(cards.len(), 1);
 
     for i in 0..cards.len() {
         let card = cards.get(i).expect("valid card");
@@ -93,9 +91,8 @@ pub fn part_2_sum_cards(lines: &str) -> usize {
 
         for n in 1..=card.wins() {
             let idx = i + n;
-            match counts.get_mut(idx) {
-                Some(cnt) => *cnt += count,
-                None => {}
+            if let Some(cnt) = counts.get_mut(idx) {
+                *cnt += count;
             }
         }
     }
