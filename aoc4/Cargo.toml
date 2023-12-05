@@ -23,6 +23,7 @@ dhat = {workspace=true}
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 nom.workspace = true
+rstest.workspace = true
 
 [dev-dependencies]
 itertools = {workspace=true}

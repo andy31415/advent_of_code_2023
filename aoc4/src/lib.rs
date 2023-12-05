@@ -98,6 +98,8 @@ pub fn part_2_sum_cards(lines: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use crate::*;
 
     #[test]
@@ -136,6 +138,17 @@ mod tests {
         assert_eq!(cards.get(3).expect("Valid").points(), 1);
         assert_eq!(cards.get(4).expect("Valid").points(), 0);
         assert_eq!(cards.get(5).expect("Valid").points(), 0);
+    }
+
+    #[rstest]
+    #[case("Card 1: 1 2 3 | 4 5 6", 0)]
+    #[case("Card 1: 1 2 3 | 1 5 6", 1)]
+    #[case("Card 1: 1 2 3 | 1 2 6", 2)]
+    #[case("Card 1: 1 2 3 | 1 2 3", 4)]
+    #[case("Card 1: 1 2 3 4 | 1 2 3 4", 8)]
+    #[case("Card 1: 1 2 3 4 | 6 4 10 2", 2)]
+    fn test_points(#[case] card: &str, #[case] points: usize) {
+        assert_eq!(Card::parse(card).expect("valud").points(), points);
     }
 
     #[test]
