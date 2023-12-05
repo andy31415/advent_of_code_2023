@@ -16,15 +16,9 @@ pub struct Card {
 }
 
 fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
-    tuple((
-        space0,
-        separated_list1(
-            space1,
-            parse_u32,
-        ),
-    ))
-    .map(|(_, digits)| digits)
-    .parse(data)
+    tuple((space0, separated_list1(space1, parse_u32)))
+        .map(|(_, digits)| digits)
+        .parse(data)
 }
 
 impl Card {
