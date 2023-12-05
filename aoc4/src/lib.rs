@@ -52,16 +52,21 @@ impl Card {
         }
     }
 
+    pub fn wins(&self) -> usize {
+        self.winning.intersection(&self.actual).count()
+    }
+
     pub fn points(&self) -> usize {
-        let matches = self.winning.intersection(&self.actual).count();
-        if matches == 0 {
-            return 0;
+        match self.wins() {
+            0 => 0,
+            cnt => {
+                let mut result = 1;
+                for _ in 1..cnt {
+                    result *= 2;
+                }
+                result
+            }
         }
-        let mut result = 1;
-        for _ in 1..matches {
-            result *= 2;
-        }
-        result
     }
 }
 
