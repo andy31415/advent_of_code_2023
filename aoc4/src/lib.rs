@@ -26,23 +26,25 @@ impl Card {
         lines.split('\n').map(Card::parse).collect()
     }
 
-    pub fn parse(line: &str) -> Result<Self, String> {
-        let mut parser = tuple((
-            tag("Card"),
-            space1,
-            parse_u32,
-            tag(":"),
-            spaced_numbers,
-            tag(" | "),
-            spaced_numbers,
+    fn line_parser(line: &str) -> IResult<&str, Card> {
+        let (line, _) = tuple((tag("Card"), space1)).parse(line)?;
+        let (line, num) = parse_u32(line)?;
+        let (line, _) = tag(":").parse(line)?;
+        let (line, winning) = spaced_numbers.parse(line)?;
+        let (line, _) = tuple((space0, tag("|"), space0)).parse(line)?;
+        let (line, actual) = spaced_numbers.parse(line)?;
+        Ok((
+            line,
+            Card {
+                num,
+                winning: HashSet::from_iter(winning),
+                actual: HashSet::from_iter(actual),
+            },
         ))
-        .map(|(_, _, num, _, winning, _, actual)| Card {
-            num: num,
-            winning: HashSet::from_iter(winning),
-            actual: HashSet::from_iter(actual),
-        });
+    }
 
-        match parser.parse(line) {
+    pub fn parse(line: &str) -> Result<Self, String> {
+        match Card::line_parser(line) {
             Err(e) => Err(format!("Error parsing: {:?}", e)),
             Ok(v) => Ok(v.1),
         }
@@ -142,7 +144,7 @@ mod tests {
     #[case("Card 1: 1 2 3 4 | 1 2 3 4", 8)]
     #[case("Card 1: 1 2 3 4 | 6 4 10 2", 2)]
     fn test_points(#[case] card: &str, #[case] points: usize) {
-        assert_eq!(Card::parse(card).expect("valud").points(), points);
+        assert_eq!(Card::parse(card).expect("value").points(), points);
     }
 
     #[test]
