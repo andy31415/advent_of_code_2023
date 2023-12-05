@@ -27,9 +27,9 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
 
 impl Card {
     pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
-        lines.split("\n").map(Card::parse).collect()
+        lines.split('\n').map(Card::parse).collect()
     }
-    
+
     pub fn parse(line: &str) -> Result<Self, String> {
         let mut parser = tuple((
             tag("Card"),
@@ -47,15 +47,15 @@ impl Card {
         });
 
         match parser.parse(line) {
-            Err(e) => Err(format!("Error parsing: {:?}", e).into()),
+            Err(e) => Err(format!("Error parsing: {:?}", e)),
             Ok(v) => Ok(v.1),
         }
     }
-    
+
     pub fn points(&self) -> usize {
         let matches = self.winning.intersection(&self.actual).count();
         if matches == 0 {
-            return 0
+            return 0;
         }
         let mut result = 1;
         for _ in 1..matches {
@@ -66,7 +66,8 @@ impl Card {
 }
 
 pub fn part_1_add_points(lines: &str) -> usize {
-    Card::parse_many(lines).expect("valid input")
+    Card::parse_many(lines)
+        .expect("valid input")
         .iter()
         .map(Card::points)
         .sum()
