@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use nom::{
     bytes::complete::tag,
-    character::complete::{digit1, space0, space1},
+    character::complete::{digit1, space0, space1, self},
     multi::separated_list1,
     sequence::tuple,
     IResult, Parser,
@@ -20,7 +20,7 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
         space0,
         separated_list1(
             space1,
-            digit1.map(|d: &str| d.parse::<u32>().expect("valid number")),
+            complete::u32,
         ),
     ))
     .map(|(_, digits)| digits)
