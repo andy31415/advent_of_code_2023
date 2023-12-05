@@ -14,10 +14,16 @@ name="aoc4"
 path="benches/aoc4.rs"
 harness = false
 
+[[bench]]
+name="aoc4-criterion"
+path="benches/aoc4-criterion.rs"
+harness = false
+
 [features]
 dhat-heap = []
 
 [dependencies]
+criterion = {workspace=true}
 divan = {workspace=true}
 dhat = {workspace=true}
 tracing = { workspace = true }
