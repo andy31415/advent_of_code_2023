@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use nom::{
     bytes::complete::tag,
-    character::complete::{digit1, space0, space1, self},
+    character::complete::{space0, space1, u32 as parse_u32},
     multi::separated_list1,
     sequence::tuple,
     IResult, Parser,
@@ -20,7 +20,7 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
         space0,
         separated_list1(
             space1,
-            complete::u32,
+            parse_u32,
         ),
     ))
     .map(|(_, digits)| digits)
@@ -36,14 +36,14 @@ impl Card {
         let mut parser = tuple((
             tag("Card"),
             space1,
-            digit1,
+            parse_u32,
             tag(":"),
             spaced_numbers,
             tag(" | "),
             spaced_numbers,
         ))
-        .map(|(_, _, id, _, winning, _, actual)| Card {
-            num: id.parse::<u32>().expect("valid digits"),
+        .map(|(_, _, num, _, winning, _, actual)| Card {
+            num: num,
             winning: HashSet::from_iter(winning),
             actual: HashSet::from_iter(actual),
         });
