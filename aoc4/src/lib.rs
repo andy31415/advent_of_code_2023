@@ -78,6 +78,32 @@ pub fn part_1_add_points(lines: &str) -> usize {
         .sum()
 }
 
+pub fn part_2_sum_cards(lines: &str) -> usize {
+    let cards = Card::parse_many(lines).expect("valid input");
+    let mut counts: Vec<usize> = Vec::with_capacity(cards.len());
+
+    // buy one card each time
+    for _ in 0..cards.len() {
+        counts.push(1);
+    }
+
+    for i in 0..cards.len() {
+        let card = cards.get(i).expect("valid card");
+        let count = *counts.get(i).expect("valid index");
+
+        for n in 1..=card.wins() {
+            let idx = i + n;
+            match counts.get_mut(idx) {
+                Some(cnt) => *cnt += count,
+                None => {},
+            }
+        }
+    }
+
+
+    counts.iter().sum()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -91,6 +117,11 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part_1_add_points(include_str!("../example.txt")), 13);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part_2_sum_cards(include_str!("../example.txt")), 30);
     }
 
     #[test]
