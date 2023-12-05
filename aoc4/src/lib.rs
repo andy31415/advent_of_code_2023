@@ -22,10 +22,6 @@ fn spaced_numbers(data: &str) -> IResult<&str, Vec<u32>> {
 }
 
 impl Card {
-    pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
-        lines.split('\n').map(Card::parse).collect()
-    }
-
     fn line_parser(line: &str) -> IResult<&str, Card> {
         let (line, _) = tuple((tag("Card"), space1)).parse(line)?;
         let (line, num) = parse_u32(line)?;
@@ -48,6 +44,10 @@ impl Card {
             Err(e) => Err(format!("Error parsing: {:?}", e)),
             Ok(v) => Ok(v.1),
         }
+    }
+
+    pub fn parse_many(lines: &str) -> Result<Vec<Self>, String> {
+        lines.split('\n').map(Card::parse).collect()
     }
 
     pub fn wins(&self) -> usize {
