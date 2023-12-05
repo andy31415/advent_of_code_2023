@@ -3,8 +3,7 @@ use std::collections::HashSet;
 use nom::{
     bytes::complete::tag,
     character::complete::{digit1, space0, space1},
-    multi::{many1, separated_list1},
-    number::complete,
+    multi::{separated_list1},
     sequence::tuple,
     IResult, Parser,
 };
