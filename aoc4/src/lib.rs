@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use nom::{
     bytes::complete::tag,
-    character::complete::{digit1, space0},
+    character::complete::{digit1, space0, space1},
     multi::many1,
     sequence::tuple,
     IResult, Parser,
@@ -32,14 +32,15 @@ impl Card {
     
     pub fn parse(line: &str) -> Result<Self, String> {
         let mut parser = tuple((
-            tag("Card "),
+            tag("Card"),
+            space1,
             digit1,
             tag(":"),
             spaced_numbers,
             tag(" | "),
             spaced_numbers,
         ))
-        .map(|(_, id, _, winning, _, actual)| Card {
+        .map(|(_, _, id, _, winning, _, actual)| Card {
             num: id.parse::<u32>().expect("valid digits"),
             winning: HashSet::from_iter(winning),
             actual: HashSet::from_iter(actual),
@@ -52,8 +53,23 @@ impl Card {
     }
     
     pub fn points(&self) -> usize {
-        self.winning.intersection(&self.actual).count()
+        let matches = self.winning.intersection(&self.actual).count();
+        if matches == 0 {
+            return 0
+        }
+        let mut result = 1;
+        for _ in 1..matches {
+            result *= 2;
+        }
+        result
     }
+}
+
+pub fn part_1_add_points(lines: &str) -> usize {
+    Card::parse_many(lines).expect("valid input")
+        .iter()
+        .map(Card::points)
+        .sum()
 }
 
 #[cfg(test)]
@@ -64,6 +80,11 @@ mod tests {
     fn test_parse_spaced_numbers() {
         assert_eq!(spaced_numbers("1 2 3 4"), Ok(("", vec![1, 2, 3, 4])));
         assert_eq!(spaced_numbers("1 2 | a b c"), Ok((" | a b c", vec![1, 2])));
+    }
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part_1_add_points(include_str!("../example.txt")), 13);
     }
 
     #[test]
@@ -79,6 +100,13 @@ mod tests {
                 actual: HashSet::from_iter(vec![61, 30, 68, 82, 17, 32, 24, 19]),
             })
         );
+
+        assert_eq!(cards.get(0).expect("Valid").points(), 8);
+        assert_eq!(cards.get(1).expect("Valid").points(), 2);
+        assert_eq!(cards.get(2).expect("Valid").points(), 2);
+        assert_eq!(cards.get(3).expect("Valid").points(), 1);
+        assert_eq!(cards.get(4).expect("Valid").points(), 0);
+        assert_eq!(cards.get(5).expect("Valid").points(), 0);
     }
 
     #[test]
