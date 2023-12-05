@@ -61,13 +61,7 @@ impl Card {
     pub fn points(&self) -> usize {
         match self.wins() {
             0 => 0,
-            cnt => {
-                let mut result = 1;
-                for _ in 1..cnt {
-                    result *= 2;
-                }
-                result
-            }
+            cnt => 1 << (cnt - 1),
         }
     }
 }
