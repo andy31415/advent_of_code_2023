@@ -95,11 +95,10 @@ pub fn part_2_sum_cards(lines: &str) -> usize {
             let idx = i + n;
             match counts.get_mut(idx) {
                 Some(cnt) => *cnt += count,
-                None => {},
+                None => {}
             }
         }
     }
-
 
     counts.iter().sum()
 }

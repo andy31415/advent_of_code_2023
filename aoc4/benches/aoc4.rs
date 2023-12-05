@@ -1,4 +1,4 @@
-use aoc4::part_1_add_points;
+use aoc4::{part_1_add_points, part_2_sum_cards};
 
 fn main() {
     // Run registered benchmarks.
@@ -12,5 +12,5 @@ fn part1() {
 
 #[divan::bench]
 fn part2() {
-    // println!("TODO: bench part 2");
+    part_2_sum_cards(divan::black_box(include_str!("../input.txt")));
 }
