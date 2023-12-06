@@ -1,9 +1,10 @@
 use nom::{
     bytes::complete::tag,
     character::complete::{multispace0, multispace1, space1},
+    combinator::recognize,
     multi::separated_list1,
     sequence::{delimited, tuple},
-    IResult, Parser, combinator::recognize,
+    IResult, Parser,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -18,10 +19,19 @@ impl Race {
     }
 
     pub fn win_counts(&self) -> usize {
-        (1..self.time)
-            .map(|p| self.trave_distance(p))
-            .filter(|n| *n > self.record)
-            .count()
+        let t = self.time as f64;
+        let disc = t * t - ((4 * self.record) as f64 + 0.000000000001);
+
+        if disc < 0.0 {
+            eprintln!("{:?}: {}", self, disc);
+            return 0;
+        }
+        let disc = disc.sqrt();
+        let mut p1 = (t - disc) / 2.0;
+        let mut p2 = (t + disc) / 2.0;
+        p1 = p1.ceil();
+        p2 = p2.floor();
+        (p2 - p1 + 1.0) as usize
     }
 }
 
@@ -36,16 +46,14 @@ pub fn parse_input_kernig(input: &str) -> IResult<&str, InputData> {
             tuple((tag("Time:"), space1)),
             separated_list1(space1, recognize(nom::character::complete::u64)),
             multispace1,
-        ).map(|items| {
-            items.join("").parse()
-        }),
+        )
+        .map(|items| items.join("").parse()),
         delimited(
             tuple((tag::<&str, _, _>("Distance:"), space1)),
             separated_list1(space1, recognize(nom::character::complete::u64)),
             multispace0,
-        ).map(|items|{
-            items.join("").parse()
-        }),
+        )
+        .map(|items| items.join("").parse()),
     ))
     .map(|(time, distance)| InputData {
         races: time
@@ -96,7 +104,6 @@ pub fn part_2(input: &str) -> usize {
     data.races.iter().map(|r| r.win_counts()).product()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,7 +112,6 @@ mod tests {
     fn test_part1() {
         assert_eq!(part_1(include_str!("../example.txt")), 288);
     }
-
 
     #[test]
     fn test_part2() {
@@ -119,11 +125,13 @@ mod tests {
                 .expect("valid input")
                 .1,
             InputData {
-                races: vec![
-                    Race { time: 71530, record: 940200 },
-                ]
-            });
-        }
+                races: vec![Race {
+                    time: 71530,
+                    record: 940200
+                },]
+            }
+        );
+    }
 
     #[test]
     fn test_parse_input() {
