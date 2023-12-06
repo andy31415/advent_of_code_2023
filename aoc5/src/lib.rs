@@ -9,15 +9,32 @@ use nom::{
     IResult, Parser,
 };
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub struct MapRange {
-    source_start: u64,
-    source_end: u64, // NOT includisve
-    dest_start: u64,
+    source_start: i64,
+    source_end: i64, // NOT includisve
+    dest_start: i64,
+}
+
+trait Remapper {
+    fn try_map(&self, src: i64) -> Option<i64>;
+}
+
+/// Vectors ALWAYS succeed mapping
+impl Remapper for Vec<MapRange> {
+    fn try_map(&self, src: i64) -> Option<i64> {
+        for m in self {
+            if let Some(pos) = m.try_map(src) {
+                return Some(pos);
+            }
+        }
+        Some(src)
+    }
 }
 
 impl MapRange {
-    pub fn try_map(&self, src: u64) -> Option<u64> {
+    /// Maps a input number to the output value
+    pub fn try_map(&self, src: i64) -> Option<i64> {
         if src >= self.source_start && src < self.source_end {
             Some(self.dest_start + src - self.source_start)
         } else {
@@ -25,7 +42,50 @@ impl MapRange {
         }
     }
 
-    pub fn from_to_len(from: u64, to: u64, len: u64) -> Self {
+    /// Transforms an input range into one or more output ranges
+    pub fn transform(&self, inputs: &Vec<MapRange>) -> Vec<MapRange> {
+        let mut split_positions = Vec::new();
+        split_positions.push(self.source_start);
+        split_positions.push(self.source_end);
+
+        for t in inputs.iter() {
+            let t_start = self.source_start - self.dest_start + t.source_start;
+            let t_end = t_start + t.source_end - t.source_start;
+
+            if t_start > self.source_start && t_start < self.source_end {
+                split_positions.push(t_start);
+            }
+            if t_end > self.source_start && t_end < self.source_end {
+                split_positions.push(t_end);
+            }
+        }
+        split_positions.sort();
+        
+        split_positions
+            .as_slice()
+            .windows(2)
+            .map(|chunk| {
+                let start = chunk[0];
+                let end = chunk[1];
+
+                let target = self.try_map(start).unwrap_or(start);
+
+                MapRange::from_start_end(start, end, inputs.try_map(target).unwrap_or(target))
+            })
+            .collect()
+    }
+
+    /// Constructor for start/end
+    pub fn from_start_end(source_start: i64, source_end: i64, dest_start: i64) -> Self {
+        Self {
+            source_start,
+            source_end,
+            dest_start,
+        }
+    }
+
+    /// Constructs a map range given from/to/len
+    pub fn from_to_len(from: i64, to: i64, len: i64) -> Self {
         Self {
             source_start: from,
             source_end: from + len,
@@ -35,11 +95,11 @@ impl MapRange {
 
     pub fn parse(span: &str) -> IResult<&str, MapRange> {
         tuple((
-            nom::character::complete::u64,
+            nom::character::complete::i64,
             space1,
-            nom::character::complete::u64,
+            nom::character::complete::i64,
             space1,
-            nom::character::complete::u64,
+            nom::character::complete::i64,
         ))
         .map(|(dest_start, _, source_start, _, len)| {
             MapRange::from_to_len(source_start, dest_start, len)
@@ -66,7 +126,7 @@ impl MapKey<'_> {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct InputData<'a> {
-    seeds: Vec<u64>,
+    seeds: Vec<i64>,
     maps: HashMap<MapKey<'a>, Vec<MapRange>>,
 }
 
@@ -80,7 +140,7 @@ impl InputData<'_> {
         None
     }
 
-    pub fn place(&self, mut value: u64, name: &str) -> u64 {
+    pub fn place(&self, mut value: i64, name: &str) -> i64 {
         let mut state = "seed";
         while state != name {
             let key = self.get_map_from(state).expect("valid input");
@@ -100,7 +160,7 @@ impl InputData<'_> {
     pub fn parse(span: &str) -> IResult<&str, InputData> {
         // start with seeds map
         let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
-        let (span, seeds) = separated_list1(space1, nom::character::complete::u64).parse(span)?;
+        let (span, seeds) = separated_list1(space1, nom::character::complete::i64).parse(span)?;
         let (span, _) = tag("\n").parse(span)?;
 
         let (span, mappings) = many0(
@@ -119,7 +179,7 @@ impl InputData<'_> {
     }
 }
 
-pub fn part_1_min(input: &str) -> u64 {
+pub fn part_1_min(input: &str) -> i64 {
     let data = InputData::parse(input).expect("good input").1;
     data.seeds
         .iter()
@@ -128,17 +188,32 @@ pub fn part_1_min(input: &str) -> u64 {
         .unwrap()
 }
 
-pub fn part_2_min(input: &str) -> u64 {
+pub fn part_2_min(input: &str) -> i64 {
     let data = InputData::parse(input).expect("good input").1;
 
-    data.seeds
-        .as_slice()
+    // every data seed is an identity map ....
+    // //
+    let mut maps = data
+        .seeds
         .chunks(2)
-        .flat_map(|a| {
-            assert!(a.len() == 2);
-            a[0]..(a[0] + a[1])
-        })
-        .map(|s| data.place(s, "location"))
+        .map(|w| MapRange::from_to_len(w[0], w[0], w[1]))
+        .collect::<Vec<_>>();
+
+    let mut state = "seed";
+    while state != "location" {
+        // find the next step
+        let key = data.get_map_from(state).expect("valid input");
+        maps = maps
+            .iter()
+            .flat_map(|m| m.transform(&data.maps.get(key).expect("valid input")))
+            .collect();
+        maps.sort();
+        state = key.to;
+    }
+
+    // minimum will be at one of the starts
+    maps.iter()
+        .map(|m| m.try_map(m.source_start).unwrap_or(m.source_start))
         .min()
         .unwrap()
 }
@@ -155,6 +230,53 @@ mod tests {
     #[test]
     fn test_part2() {
         assert_eq!(part_2_min(include_str!("../example.txt")), 46);
+    }
+
+    #[test]
+    fn test_chunk_map() {
+        assert_eq!(
+            MapRange::from_start_end(10, 20, 100)
+                .transform(&vec![MapRange::from_start_end(5, 8, 30)]),
+            vec![MapRange::from_start_end(10, 20, 100)],
+        );
+
+        assert_eq!(
+            MapRange::from_start_end(10, 20, 5)
+                .transform(&vec![MapRange::from_start_end(5, 30, 300)]),
+            vec![MapRange::from_start_end(10, 20, 300)],
+        );
+
+        assert_eq!(
+            MapRange::from_start_end(10, 20, 15)
+                .transform(&vec![MapRange::from_start_end(5, 30, 300)]),
+            vec![MapRange::from_start_end(10, 20, 310)],
+        );
+
+        // 10 -> 50
+        // 20 -> 60 -> 10
+        // 30 -> 70 -> 20 // by one
+        // 40 -> 90
+        assert_eq!(
+            MapRange::from_start_end(10, 40, 50)
+                .transform(&vec![MapRange::from_start_end(60, 70, 10)]),
+            vec![
+                MapRange::from_start_end(10, 20, 50),
+                MapRange::from_start_end(20, 30, 10),
+                MapRange::from_start_end(30, 40, 70),
+            ],
+        );
+
+        // 25 -> 65 -> 15
+        // 30 -> 70 -> 20 // by one
+        // 40 -> 80
+        assert_eq!(
+            MapRange::from_start_end(25, 40, 65)
+                .transform(&vec![MapRange::from_start_end(60, 70, 10)]),
+            vec![
+                MapRange::from_start_end(25, 30, 15),
+                MapRange::from_start_end(30, 40, 70),
+            ],
+        );
     }
 
     #[test]
