@@ -69,12 +69,12 @@ impl InputData<'_> {
     pub fn parse(span: &str) -> IResult<&str, InputData> {
         // start with seeds map
         let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
-        
         let (span, seeds) = separated_list1(space1, nom::character::complete::u32).parse(span)?;
+        let (span, _) = tag("\n").parse(span)?;
         
         let (span, mappings) = many0(
             tuple((
-            tag("\n\n"),
+            tag("\n"),
             MapKey::parse,
             tag("\n"),
             many1(tuple((MapRange::parse, tag("\n"))).map(|(r,_)| r))
@@ -90,6 +90,14 @@ impl InputData<'_> {
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[test]
+    fn test_parse_input() {
+        let r = InputData::parse(include_str!("../example.txt")).expect("valid input").1;
+        
+        assert_eq!(r.seeds, [79, 14, 55, 13]);
+        assert_eq!(r.maps.len(), 7);
+    }
 
     #[test]
     fn test_map_key() {
