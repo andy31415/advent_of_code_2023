@@ -82,6 +82,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc5"
+version = "0.1.0"
+dependencies = [
+ "dhat",
+ "divan",
+ "itertools 0.10.5",
+ "nom",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
