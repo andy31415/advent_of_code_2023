@@ -116,9 +116,19 @@ impl InputData<'_> {
     }
 }
 
+pub fn part_1_min(input: &str) -> u32 {
+    let data = InputData::parse(input).expect("good input").1;
+    data.seeds.iter().map(|s| data.place(*s, "location")).min().unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part_1_min(include_str!("../example.txt")), 35);
+    }
 
     #[test]
     fn test_example_map() {
