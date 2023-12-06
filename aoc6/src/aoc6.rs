@@ -1,4 +1,4 @@
-use aoc6::part_1;
+use aoc6::{part_1, part_2};
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -12,5 +12,6 @@ fn main() {
     let s1 = part_1(include_str!("../input.txt"));
     println!("Part 1: {}", s1);
 
-    println!("Part 2:");
+    let s2 = part_2(include_str!("../input.txt"));
+    println!("Part 2: {}", s2);
 }
