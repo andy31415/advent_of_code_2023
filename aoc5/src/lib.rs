@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use nom::{
     bytes::complete::tag,
     character::complete::{alpha1, space1},
     combinator::value,
     sequence::tuple,
-    IResult, Parser,
+    IResult, Parser, multi::{separated_list1, many0, many1},
 };
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -21,7 +23,7 @@ impl MapRange {
         if src >= self.source_start + self.len {
             return None;
         }
-        return Some(self.dest_start + src - self.source_start);
+        Some(self.dest_start + src - self.source_start)
     }
 
     pub fn parse(span: &str) -> IResult<&str, MapRange> {
@@ -41,7 +43,7 @@ impl MapRange {
     }
 }
 
-#[derive(PartialEq, Debug, Hash, Clone)]
+#[derive(PartialEq, Debug, Hash, Clone, Eq)]
 pub struct MapKey<'a> {
     pub from: &'a str,
     pub to: &'a str,
@@ -54,6 +56,34 @@ impl MapKey<'_> {
         let (span, to) = alpha1(span)?;
 
         value(MapKey { from, to }, tuple((space1, tag("map:"))))(span)
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct InputData<'a> {
+    seeds: Vec<u32>,
+    maps: HashMap<MapKey<'a>, Vec<MapRange>>,
+}
+
+impl InputData<'_> {
+    pub fn parse(span: &str) -> IResult<&str, InputData> {
+        // start with seeds map
+        let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
+        
+        let (span, seeds) = separated_list1(space1, nom::character::complete::u32).parse(span)?;
+        
+        let (span, mappings) = many0(
+            tuple((
+            tag("\n\n"),
+            MapKey::parse,
+            tag("\n"),
+            many1(tuple((MapRange::parse, tag("\n"))).map(|(r,_)| r))
+        )).map(|(_,key,_, items)| (key, items))
+        )
+        .parse(span)?;
+        
+        let maps = HashMap::from_iter(mappings);
+        Ok((span, InputData{seeds, maps}))
     }
 }
 
