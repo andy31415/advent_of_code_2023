@@ -1,4 +1,4 @@
-use aoc5::part_1_min;
+use aoc5::{part_1_min, part_2_min};
 use divan::black_box;
 
 fn main() {
@@ -13,5 +13,5 @@ fn part1() {
 
 #[divan::bench]
 fn part2() {
-    // println!("TODO: bench part 2");
+    part_2_min(black_box(include_str!("../input.txt")));
 }

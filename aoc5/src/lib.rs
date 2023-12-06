@@ -60,7 +60,7 @@ impl MapRange {
             }
         }
         split_positions.sort();
-        
+
         split_positions
             .as_slice()
             .windows(2)
