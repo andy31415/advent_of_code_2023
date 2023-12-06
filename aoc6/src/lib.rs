@@ -12,6 +12,19 @@ pub struct Race {
     record: u32,
 }
 
+impl Race {
+    pub fn trave_distance(&self, press: u32) -> u32 {
+        return (self.time - press) * press;
+    }
+
+    pub fn win_counts(&self) -> usize {
+        (1..self.time)
+            .map(|p| self.trave_distance(p))
+            .filter(|n| *n > self.record)
+            .count()
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct InputData {
     pub races: Vec<Race>,
@@ -43,9 +56,21 @@ pub fn parse_input(input: &str) -> IResult<&str, InputData> {
     .parse(input)
 }
 
+pub fn part_1(input: &str) -> usize {
+    let data = parse_input(input).expect("valid input").1;
+    data.races.iter().map(|r| r.win_counts()).product()
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part_1(include_str!("../example.txt")), 288);
+    }
+
 
     #[test]
     fn test_parse_input() {
