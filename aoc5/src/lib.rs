@@ -1,5 +1,7 @@
 use nom::{
-    character::{self, complete::space1},
+    bytes::complete::tag,
+    character::complete::{alpha1, space1},
+    combinator::value,
     sequence::tuple,
     IResult, Parser,
 };
@@ -24,11 +26,11 @@ impl MapRange {
 
     pub fn parse(span: &str) -> IResult<&str, MapRange> {
         tuple((
-            character::complete::u32,
+            nom::character::complete::u32,
             space1,
-            character::complete::u32,
+            nom::character::complete::u32,
             space1,
-            character::complete::u32,
+            nom::character::complete::u32,
         ))
         .map(|(dest_start, _, source_start, _, len)| MapRange {
             source_start,
@@ -39,9 +41,40 @@ impl MapRange {
     }
 }
 
+#[derive(PartialEq, Debug, Hash, Clone)]
+pub struct MapKey<'a> {
+    pub from: &'a str,
+    pub to: &'a str,
+}
+
+impl MapKey<'_> {
+    pub fn parse(span: &str) -> IResult<&str, MapKey<'_>> {
+        let (span, from) = alpha1(span)?;
+        let (span, _) = tag("-to-")(span)?;
+        let (span, to) = alpha1(span)?;
+
+        value(MapKey { from, to }, tuple((space1, tag("map:"))))(span)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::MapRange;
+    use crate::*;
+
+    #[test]
+    fn test_map_key() {
+        assert_eq!(
+            MapKey::parse("a-to-b map:").expect("valid").1,
+            MapKey { from: "a", to: "b" }
+        );
+        assert_eq!(
+            MapKey::parse("soil-to-fertilizer map:").expect("valid").1,
+            MapKey {
+                from: "soil",
+                to: "fertilizer"
+            }
+        );
+    }
 
     #[test]
     fn test_mapping() {
