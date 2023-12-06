@@ -97,6 +97,9 @@ mod tests {
         
         assert_eq!(r.seeds, [79, 14, 55, 13]);
         assert_eq!(r.maps.len(), 7);
+        
+        assert_eq!(InputData::parse(include_str!("../example.txt")).expect("valid input").0, "");
+        assert_eq!(InputData::parse(include_str!("../input.txt")).expect("valid input").0, "");
     }
 
     #[test]
