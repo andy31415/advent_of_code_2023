@@ -4,26 +4,33 @@ use nom::{
     bytes::complete::tag,
     character::complete::{alpha1, space1},
     combinator::value,
+    multi::{many0, many1, separated_list1},
     sequence::tuple,
-    IResult, Parser, multi::{separated_list1, many0, many1},
+    IResult, Parser,
 };
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct MapRange {
-    pub source_start: u64,
-    pub dest_start: u64,
-    pub len: u64,
+    source_start: u64,
+    source_end: u64, // NOT includisve
+    dest_start: u64,
 }
 
 impl MapRange {
     pub fn try_map(&self, src: u64) -> Option<u64> {
-        if src < self.source_start {
-            return None;
+        if src >= self.source_start && src < self.source_end {
+            Some(self.dest_start + src - self.source_start)
+        } else {
+            None
         }
-        if src >= self.source_start + self.len {
-            return None;
+    }
+
+    pub fn from_to_len(from: u64, to: u64, len: u64) -> Self {
+        Self {
+            source_start: from,
+            source_end: from + len,
+            dest_start: to,
         }
-        Some(self.dest_start + src - self.source_start)
     }
 
     pub fn parse(span: &str) -> IResult<&str, MapRange> {
@@ -34,10 +41,8 @@ impl MapRange {
             space1,
             nom::character::complete::u64,
         ))
-        .map(|(dest_start, _, source_start, _, len)| MapRange {
-            source_start,
-            dest_start,
-            len,
+        .map(|(dest_start, _, source_start, _, len)| {
+            MapRange::from_to_len(source_start, dest_start, len)
         })
         .parse(span)
     }
@@ -66,18 +71,15 @@ pub struct InputData<'a> {
 }
 
 impl InputData<'_> {
-    
     pub fn get_map_from(&self, state: &str) -> Option<&MapKey<'_>> {
         for k in self.maps.keys() {
             if k.from == state {
-                return Some(k)
+                return Some(k);
             }
         }
         None
-        
-        
     }
-    
+
     pub fn place(&self, mut value: u64, name: &str) -> u64 {
         let mut state = "seed";
         while state != name {
@@ -91,34 +93,54 @@ impl InputData<'_> {
             // not mapped preserves location
             state = key.to;
         }
-        
+
         value
     }
-    
+
     pub fn parse(span: &str) -> IResult<&str, InputData> {
         // start with seeds map
         let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
         let (span, seeds) = separated_list1(space1, nom::character::complete::u64).parse(span)?;
         let (span, _) = tag("\n").parse(span)?;
-        
+
         let (span, mappings) = many0(
             tuple((
-            tag("\n"),
-            MapKey::parse,
-            tag("\n"),
-            many1(tuple((MapRange::parse, tag("\n"))).map(|(r,_)| r))
-        )).map(|(_,key,_, items)| (key, items))
+                tag("\n"),
+                MapKey::parse,
+                tag("\n"),
+                many1(tuple((MapRange::parse, tag("\n"))).map(|(r, _)| r)),
+            ))
+            .map(|(_, key, _, items)| (key, items)),
         )
         .parse(span)?;
-        
+
         let maps = HashMap::from_iter(mappings);
-        Ok((span, InputData{seeds, maps}))
+        Ok((span, InputData { seeds, maps }))
     }
 }
 
 pub fn part_1_min(input: &str) -> u64 {
     let data = InputData::parse(input).expect("good input").1;
-    data.seeds.iter().map(|s| data.place(*s, "location")).min().unwrap()
+    data.seeds
+        .iter()
+        .map(|s| data.place(*s, "location"))
+        .min()
+        .unwrap()
+}
+
+pub fn part_2_min(input: &str) -> u64 {
+    let data = InputData::parse(input).expect("good input").1;
+
+    data.seeds
+        .as_slice()
+        .chunks(2)
+        .flat_map(|a| {
+            assert!(a.len() == 2);
+            a[0]..(a[0] + a[1])
+        })
+        .map(|s| data.place(s, "location"))
+        .min()
+        .unwrap()
 }
 
 #[cfg(test)]
@@ -131,8 +153,15 @@ mod tests {
     }
 
     #[test]
+    fn test_part2() {
+        assert_eq!(part_2_min(include_str!("../example.txt")), 46);
+    }
+
+    #[test]
     fn test_example_map() {
-        let r = InputData::parse(include_str!("../example.txt")).expect("valid input").1;
+        let r = InputData::parse(include_str!("../example.txt"))
+            .expect("valid input")
+            .1;
         assert_eq!(r.place(79, "location"), 82);
         assert_eq!(r.place(14, "location"), 43);
         assert_eq!(r.place(55, "location"), 86);
@@ -141,13 +170,25 @@ mod tests {
 
     #[test]
     fn test_parse_input() {
-        let r = InputData::parse(include_str!("../example.txt")).expect("valid input").1;
-        
+        let r = InputData::parse(include_str!("../example.txt"))
+            .expect("valid input")
+            .1;
+
         assert_eq!(r.seeds, [79, 14, 55, 13]);
         assert_eq!(r.maps.len(), 7);
-        
-        assert_eq!(InputData::parse(include_str!("../example.txt")).expect("valid input").0, "");
-        assert_eq!(InputData::parse(include_str!("../input.txt")).expect("valid input").0, "");
+
+        assert_eq!(
+            InputData::parse(include_str!("../example.txt"))
+                .expect("valid input")
+                .0,
+            ""
+        );
+        assert_eq!(
+            InputData::parse(include_str!("../input.txt"))
+                .expect("valid input")
+                .0,
+            ""
+        );
     }
 
     #[test]
@@ -179,19 +220,11 @@ mod tests {
     fn parse_range() {
         assert_eq!(
             MapRange::parse("50 98 2").expect("valid").1,
-            MapRange {
-                source_start: 98,
-                dest_start: 50,
-                len: 2
-            }
+            MapRange::from_to_len(98, 50, 2)
         );
         assert_eq!(
             MapRange::parse("88 18 7").expect("valid").1,
-            MapRange {
-                source_start: 18,
-                dest_start: 88,
-                len: 7
-            }
+            MapRange::from_to_len(18, 88, 7)
         );
     }
 }
