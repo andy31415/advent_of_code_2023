@@ -10,13 +10,13 @@ use nom::{
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct MapRange {
-    pub source_start: u32,
-    pub dest_start: u32,
-    pub len: u32,
+    pub source_start: u64,
+    pub dest_start: u64,
+    pub len: u64,
 }
 
 impl MapRange {
-    pub fn try_map(&self, src: u32) -> Option<u32> {
+    pub fn try_map(&self, src: u64) -> Option<u64> {
         if src < self.source_start {
             return None;
         }
@@ -28,11 +28,11 @@ impl MapRange {
 
     pub fn parse(span: &str) -> IResult<&str, MapRange> {
         tuple((
-            nom::character::complete::u32,
+            nom::character::complete::u64,
             space1,
-            nom::character::complete::u32,
+            nom::character::complete::u64,
             space1,
-            nom::character::complete::u32,
+            nom::character::complete::u64,
         ))
         .map(|(dest_start, _, source_start, _, len)| MapRange {
             source_start,
@@ -61,7 +61,7 @@ impl MapKey<'_> {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct InputData<'a> {
-    seeds: Vec<u32>,
+    seeds: Vec<u64>,
     maps: HashMap<MapKey<'a>, Vec<MapRange>>,
 }
 
@@ -78,7 +78,7 @@ impl InputData<'_> {
         
     }
     
-    pub fn place(&self, mut value: u32, name: &str) -> u32 {
+    pub fn place(&self, mut value: u64, name: &str) -> u64 {
         let mut state = "seed";
         while state != name {
             let key = self.get_map_from(state).expect("valid input");
@@ -98,7 +98,7 @@ impl InputData<'_> {
     pub fn parse(span: &str) -> IResult<&str, InputData> {
         // start with seeds map
         let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
-        let (span, seeds) = separated_list1(space1, nom::character::complete::u32).parse(span)?;
+        let (span, seeds) = separated_list1(space1, nom::character::complete::u64).parse(span)?;
         let (span, _) = tag("\n").parse(span)?;
         
         let (span, mappings) = many0(
@@ -116,7 +116,7 @@ impl InputData<'_> {
     }
 }
 
-pub fn part_1_min(input: &str) -> u32 {
+pub fn part_1_min(input: &str) -> u64 {
     let data = InputData::parse(input).expect("good input").1;
     data.seeds.iter().map(|s| data.place(*s, "location")).min().unwrap()
 }
