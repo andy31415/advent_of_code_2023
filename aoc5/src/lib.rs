@@ -66,6 +66,35 @@ pub struct InputData<'a> {
 }
 
 impl InputData<'_> {
+    
+    pub fn get_map_from(&self, state: &str) -> Option<&MapKey<'_>> {
+        for k in self.maps.keys() {
+            if k.from == state {
+                return Some(k)
+            }
+        }
+        None
+        
+        
+    }
+    
+    pub fn place(&self, mut value: u32, name: &str) -> u32 {
+        let mut state = "seed";
+        while state != name {
+            let key = self.get_map_from(state).expect("valid input");
+            for m in self.maps.get(key).expect("valid input") {
+                if let Some(new_pos) = m.try_map(value) {
+                    value = new_pos;
+                    break;
+                }
+            }
+            // not mapped preserves location
+            state = key.to;
+        }
+        
+        value
+    }
+    
     pub fn parse(span: &str) -> IResult<&str, InputData> {
         // start with seeds map
         let (span, _) = tuple((tag("seeds:"), space1)).parse(span)?;
@@ -90,6 +119,15 @@ impl InputData<'_> {
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[test]
+    fn test_example_map() {
+        let r = InputData::parse(include_str!("../example.txt")).expect("valid input").1;
+        assert_eq!(r.place(79, "location"), 82);
+        assert_eq!(r.place(14, "location"), 43);
+        assert_eq!(r.place(55, "location"), 86);
+        assert_eq!(r.place(13, "location"), 35);
+    }
 
     #[test]
     fn test_parse_input() {
