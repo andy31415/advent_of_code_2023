@@ -8,12 +8,12 @@ use nom::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Race {
-    time: u32,
-    record: u32,
+    time: u64,
+    record: u64,
 }
 
 impl Race {
-    pub fn trave_distance(&self, press: u32) -> u32 {
+    pub fn trave_distance(&self, press: u64) -> u64 {
         return (self.time - press) * press;
     }
 
@@ -34,14 +34,14 @@ pub fn parse_input_kernig(input: &str) -> IResult<&str, InputData> {
     tuple((
         delimited(
             tuple((tag("Time:"), space1)),
-            separated_list1(space1, recognize(nom::character::complete::u32)),
+            separated_list1(space1, recognize(nom::character::complete::u64)),
             multispace1,
         ).map(|items| {
             items.join("").parse()
         }),
         delimited(
             tuple((tag::<&str, _, _>("Distance:"), space1)),
-            separated_list1(space1, recognize(nom::character::complete::u32)),
+            separated_list1(space1, recognize(nom::character::complete::u64)),
             multispace0,
         ).map(|items|{
             items.join("").parse()
@@ -64,12 +64,12 @@ pub fn parse_input(input: &str) -> IResult<&str, InputData> {
     tuple((
         delimited(
             tuple((tag("Time:"), space1)),
-            separated_list1(space1, nom::character::complete::u32),
+            separated_list1(space1, nom::character::complete::u64),
             multispace1,
         ),
         delimited(
             tuple((tag::<&str, _, _>("Distance:"), space1)),
-            separated_list1(space1, nom::character::complete::u32),
+            separated_list1(space1, nom::character::complete::u64),
             multispace0,
         ),
     ))
