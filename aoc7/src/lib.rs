@@ -7,7 +7,7 @@ use nom::{
     combinator::{opt, value},
     multi,
     sequence::tuple,
-    IResult, Parser
+    IResult, Parser,
 };
 use nom_supreme::ParserExt;
 
@@ -23,8 +23,7 @@ pub enum Item {
 
 impl Item {
     pub fn display_char(&self) -> char {
-        let v = 
-        match self {
+        let v = match self {
             Item::Card(x) => x,
             Item::Pair(x) => x,
             Item::Three(x) => x,
@@ -47,7 +46,6 @@ impl Item {
             14 => 'A',
             _ => panic!("Invalid value: {}", v),
         }
-        
     }
 
     pub fn count(&self) -> u8 {
@@ -83,7 +81,48 @@ impl From<(u8, i32)> for Item {
     }
 }
 
-pub fn parse_hand(input: &str) -> IResult<&str, Vec<Item>> {
+#[derive(Debug, PartialEq, Ord, Eq, Clone)]
+pub struct Hand {
+    items: Vec<Item>,
+}
+
+impl std::fmt::Display for Hand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for x in self.items.iter() {
+            f.write_fmt(format_args!("{}", x))?;
+        }
+        Ok(())
+    }
+}
+
+impl PartialOrd for Hand {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // only special case is that 2 paris are better than one pair
+        // regardless of ordering
+        if self.items.len() > 1 && other.items.len() > 1 {
+            let (s1, s2) = (self.items.get(0).unwrap(), self.items.get(1).unwrap());
+
+            let p1 = matches!(s1, Item::Pair(_));
+            let p2 = matches!(s2, Item::Pair(_));
+
+            let (o1, o2) = (other.items.get(0).unwrap(), other.items.get(1).unwrap());
+            let op1 = matches!(o1, Item::Pair(_));
+            let op2 = matches!(o2, Item::Pair(_));
+                
+            if p1 && p2 && op1 && !op2 {
+                return Some(std::cmp::Ordering::Greater);
+            }
+            if p1 && !p2 && op1 && op2 {
+                return Some(std::cmp::Ordering::Less);
+            }
+            
+
+        } 
+        self.items.partial_cmp(&other.items)
+    }
+}
+
+pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
     let (span, mut items) = nom::multi::many_m_n(
         5,
         5,
@@ -117,22 +156,18 @@ pub fn parse_hand(input: &str) -> IResult<&str, Vec<Item>> {
     result.sort();
     result.reverse();
 
-    Ok((span, result))
+    Ok((span, Hand { items: result }))
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Ord, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
 pub struct Bid {
-    pub hand: Vec<Item>,
+    pub hand: Hand,
     pub value: u32,
 }
 
 impl std::fmt::Display for Bid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Bid: ")?;
-        for x in self.hand.iter() {
-            f.write_fmt(format_args!("{}", x))?;
-        }
-        f.write_fmt(format_args!(" -> {}", self.value))
+        f.write_fmt(format_args!("Bid: {} -> {}", self.hand, self.value))
     }
 }
 
@@ -149,19 +184,18 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<Bid>> {
 pub fn part1_score(input: &str) -> usize {
     let (left, mut bids) = parse_input(input).expect("valid input");
     assert_eq!(left, "");
-    
+
     // smallest hand goes first
-    for b in bids.iter() {
-       eprintln!("{}", b);
-    }
     bids.sort();
     eprintln!("SORTED");
     for b in bids.iter() {
-       eprintln!("{}", b);
+        eprintln!("{}", b);
     }
     eprintln!("LEN: {}", bids.len());
-    bids.iter().enumerate().map(|(rank, bid)| (rank+1) * bid.value as usize).sum()
-    
+    bids.iter()
+        .enumerate()
+        .map(|(rank, bid)| (rank + 1) * bid.value as usize)
+        .sum()
 }
 
 // Stategy:
@@ -184,26 +218,41 @@ mod tests {
                 "",
                 vec![
                     Bid {
-                        hand: vec![Item::Pair(3), Item::Card(13), Item::Card(10), Item::Card(2)],
+                        hand: Hand {
+                            items: vec![
+                                Item::Pair(3),
+                                Item::Card(13),
+                                Item::Card(10),
+                                Item::Card(2)
+                            ]
+                        },
                         value: 765
                     },
                     Bid {
-                        hand: vec![Item::Three(5), Item::Card(11), Item::Card(10)],
+                        hand: Hand {
+                            items: vec![Item::Three(5), Item::Card(11), Item::Card(10)]
+                        },
                         value: 684
                     },
                     Bid {
-                        hand: vec![Item::Pair(13), Item::Pair(7), Item::Card(6)],
+                        hand: Hand {
+                            items: vec![Item::Pair(13), Item::Pair(7), Item::Card(6)]
+                        },
                         value: 28
                     },
                     Bid {
-                        hand: vec![Item::Pair(11), Item::Pair(10), Item::Card(13)],
+                        hand: Hand {
+                            items: vec![Item::Pair(11), Item::Pair(10), Item::Card(13)]
+                        },
                         value: 220
                     },
                     Bid {
-                        hand: vec![Item::Three(12), Item::Card(14), Item::Card(11)],
+                        hand: Hand {
+                            items: vec![Item::Three(12), Item::Card(14), Item::Card(11)]
+                        },
                         value: 483
                     }
-                ]            
+                ]
             ))
         );
     }
@@ -212,23 +261,34 @@ mod tests {
     fn check_parse() {
         assert_eq!(
             parse_hand("AA8AA"),
-            Ok(("", vec![Item::Four(14), Item::Card(8)]))
-        );
-        assert_eq!(
-            parse_hand("88Q88"),
-            Ok(("", vec![Item::Four(8), Item::Card(12)]))
-        );
-        assert_eq!(
-            parse_hand("2A323"),
-            Ok(("", vec![Item::Pair(3), Item::Pair(2), Item::Card(14)]))
+            Ok((
+                "",
+                Hand {
+                    items: vec![Item::Four(14), Item::Card(8)]
+                }
+            ))
         );
         assert_eq!(
             parse_hand("TQ181"),
             Ok((
                 "",
-                vec![Item::Pair(1), Item::Card(12), Item::Card(10), Item::Card(8)]
+                Hand {
+                    items: vec![Item::Pair(1), Item::Card(12), Item::Card(10), Item::Card(8)]
+                }
             ))
         );
+    }
+
+    #[test]
+    fn more_order() {
+        let b1 = parse_hand("AK642").expect("valid").1;
+        let b2 = parse_hand("TTJ43").expect("valid").1;
+        assert!(b2 > b1);
+
+        // two pair better than one pair
+        let b1 = parse_hand("AA234").expect("valid").1;
+        let b2 = parse_hand("22335").expect("valid").1;
+        assert!(b2 > b1);
     }
 
     #[test]
