@@ -289,6 +289,7 @@ mod tests {
         let b1 = parse_hand("AA234").expect("valid").1;
         let b2 = parse_hand("22335").expect("valid").1;
         assert!(b2 > b1);
+        assert!(b1 < b2);
     }
 
     #[test]
