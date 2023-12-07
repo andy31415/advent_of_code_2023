@@ -97,9 +97,8 @@ impl std::fmt::Display for Hand {
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // only special case is that 2 paris are better than one pair
-        // regardless of ordering
         if self.items.len() > 1 && other.items.len() > 1 {
+            // two pair wins over one pair
             let (s1, s2) = (self.items.get(0).unwrap(), self.items.get(1).unwrap());
 
             let p1 = matches!(s1, Item::Pair(_));
@@ -115,8 +114,18 @@ impl PartialOrd for Hand {
             if p1 && !p2 && op1 && op2 {
                 return Some(std::cmp::Ordering::Less);
             }
-            
+            // full house wins over 3 of a kind
 
+            if matches!(s1, Item::Three(_)) && matches!(o1, Item::Three(_)) {
+                // both three of a kind, pair is a full house
+                if self.items.len() == 2 && other.items.len() == 3 {
+                   return Some(std::cmp::Ordering::Greater);
+                }
+                if self.items.len() == 3 && other.items.len() == 2 {
+                   return Some(std::cmp::Ordering::Less);
+                }
+                
+            }
         } 
         self.items.partial_cmp(&other.items)
     }
@@ -278,6 +287,31 @@ mod tests {
             ))
         );
     }
+    
+    fn assert_ordered(a: &str, b: &str) {
+        let a = parse_hand(a).expect("valid").1;
+        let b = parse_hand(b).expect("valid").1;
+        assert!(a > b);
+        assert!(b < a);
+    }
+
+    #[test]
+    fn mix_order() {
+        assert_ordered("AAAAA", "AA8AA");
+        assert_ordered("AA8AA", "23332");
+        assert_ordered("23332", "TTT98");
+        assert_ordered("TTT98", "23432");
+        assert_ordered("23432", "A23A4");
+        assert_ordered("A23A4", "23456");
+        
+        // change things up
+        assert_ordered("11234", "AKQT9");
+        assert_ordered("11223", "AAKQT");
+        assert_ordered("11123", "AAKKQ");
+        assert_ordered("11122", "AAAKQ");
+        assert_ordered("11112", "AAAKK");
+        assert_ordered("11111", "AAAAK");
+    }
 
     #[test]
     fn more_order() {
@@ -290,6 +324,14 @@ mod tests {
         let b2 = parse_hand("22335").expect("valid").1;
         assert!(b2 > b1);
         assert!(b1 < b2);
+
+        // Full house wins over 3 of a kind
+        let b1 = parse_hand("33344").expect("valid").1;
+        let b2 = parse_hand("AAAKQ").expect("valid").1;
+        dbg!(&b1);
+        dbg!(&b2);
+        assert!(b1 > b2);
+        assert!(b2 < b1);
     }
 
     #[test]
