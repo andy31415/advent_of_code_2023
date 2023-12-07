@@ -1,11 +1,13 @@
+use std::fmt::Write;
+
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{multispace0, one_of, space1},
     combinator::{opt, value},
     multi,
-    sequence::{pair, tuple},
-    IResult, Parser,
+    sequence::tuple,
+    IResult, Parser
 };
 use nom_supreme::ParserExt;
 
@@ -19,14 +21,63 @@ pub enum Item {
     Five(u8),
 }
 
-impl Into<Item> for (u8, i32) {
-    fn into(self) -> Item {
-        match self.1 {
-            1 => Item::Card(self.0),
-            2 => Item::Pair(self.0),
-            3 => Item::Three(self.0),
-            4 => Item::Four(self.0),
-            5 => Item::Five(self.0),
+impl Item {
+    pub fn display_char(&self) -> char {
+        let v = 
+        match self {
+            Item::Card(x) => x,
+            Item::Pair(x) => x,
+            Item::Three(x) => x,
+            Item::Four(x) => x,
+            Item::Five(x) => x,
+        };
+        match v {
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5',
+            6 => '6',
+            7 => '7',
+            8 => '8',
+            9 => '9',
+            10 => 'T',
+            11 => 'J',
+            12 => 'Q',
+            13 => 'K',
+            14 => 'A',
+            _ => panic!("Invalid value: {}", v),
+        }
+        
+    }
+
+    pub fn count(&self) -> u8 {
+        match self {
+            Item::Card(_) => 1,
+            Item::Pair(_) => 2,
+            Item::Three(_) => 3,
+            Item::Four(_) => 4,
+            Item::Five(_) => 5,
+        }
+    }
+}
+
+impl std::fmt::Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for _ in 1..=self.count() {
+            f.write_char(self.display_char())?;
+        }
+        Ok(())
+    }
+}
+
+impl From<(u8, i32)> for Item {
+    fn from(val: (u8, i32)) -> Self {
+        match val.1 {
+            1 => Item::Card(val.0),
+            2 => Item::Pair(val.0),
+            3 => Item::Three(val.0),
+            4 => Item::Four(val.0),
+            5 => Item::Five(val.0),
             _ => panic!("Invalid count"),
         }
     }
@@ -54,7 +105,7 @@ pub fn parse_hand(input: &str) -> IResult<&str, Vec<Item>> {
     let mut previous = (0, 0);
     for x in items.iter() {
         if *x == previous.0 {
-            previous.1 = previous.1 + 1;
+            previous.1 += 1;
         } else {
             if previous.1 != 0 {
                 result.push(previous.into())
@@ -75,6 +126,16 @@ pub struct Bid {
     pub value: u32,
 }
 
+impl std::fmt::Display for Bid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Bid: ")?;
+        for x in self.hand.iter() {
+            f.write_fmt(format_args!("{}", x))?;
+        }
+        f.write_fmt(format_args!(" -> {}", self.value))
+    }
+}
+
 pub fn parse_bid(input: &str) -> IResult<&str, Bid> {
     tuple((parse_hand, space1, nom::character::complete::u32))
         .map(|(hand, _, value)| Bid { hand, value })
@@ -86,10 +147,21 @@ pub fn parse_input(input: &str) -> IResult<&str, Vec<Bid>> {
 }
 
 pub fn part1_score(input: &str) -> usize {
-    let mut bids = parse_input(input).expect("valid input").1;
+    let (left, mut bids) = parse_input(input).expect("valid input");
+    assert_eq!(left, "");
+    
+    // smallest hand goes first
+    for b in bids.iter() {
+       eprintln!("{}", b);
+    }
     bids.sort();
-    //bids.reverse();
+    eprintln!("SORTED");
+    for b in bids.iter() {
+       eprintln!("{}", b);
+    }
+    eprintln!("LEN: {}", bids.len());
     bids.iter().enumerate().map(|(rank, bid)| (rank+1) * bid.value as usize).sum()
+    
 }
 
 // Stategy:
