@@ -10,7 +10,6 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing_subscriber::fmt::format::Full;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Item {
