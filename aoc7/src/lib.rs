@@ -125,7 +125,7 @@ impl Hand {
         result.cards = self
             .cards
             .iter()
-            .map(|c| if *c == 11 { 0 as u8 } else { *c })
+            .map(|c| if *c == 11 { 0_u8 } else { *c })
             .collect();
 
         let joker_count = result.cards.iter().filter(|c| **c == 0).count() as u8;
@@ -139,7 +139,7 @@ impl Hand {
                 .collect(),
         );
 
-        result.items = if remaining_cards.len() == 0 {
+        result.items = if remaining_cards.is_empty() {
             vec![Item::Five(0)] // five jokers
         } else {
             // TODO: upgrade first card with these many jokers
@@ -180,7 +180,7 @@ impl Hand {
 }
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
