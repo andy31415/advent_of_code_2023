@@ -130,9 +130,15 @@ impl Hand {
 
         let joker_count = result.cards.iter().filter(|c| **c == 0).count() as u8;
 
-        let mut remaining_cards =
-            into_items(result.cards.clone().into_iter().filter(|c| *c != 0).collect());
-        
+        let mut remaining_cards = into_items(
+            result
+                .cards
+                .clone()
+                .into_iter()
+                .filter(|c| *c != 0)
+                .collect(),
+        );
+
         result.items = if remaining_cards.len() == 0 {
             vec![Item::Five(0)] // five jokers
         } else {
@@ -146,10 +152,10 @@ impl Hand {
                 3 => Item::Three(left[0].value()),
                 4 => Item::Four(left[0].value()),
                 5 => Item::Five(left[0].value()),
-                _ => panic!("Invalid state")
+                _ => panic!("Invalid state"),
             });
             for rest in right {
-               upd.push(*rest);
+                upd.push(*rest);
             }
             upd
         };
@@ -224,7 +230,7 @@ pub fn into_items(mut items: Vec<u8>) -> Vec<Item> {
         }
     }
     if previous.1 != 0 {
-      result.push(previous.into());
+        result.push(previous.into());
     }
     result.sort();
     result.reverse();
@@ -296,10 +302,13 @@ pub fn part2_score(input: &str) -> usize {
     assert_eq!(left, "");
 
     // smallest hand goes first
-    let mut bids = bids.iter().map(|b| Bid {
-        hand: b.hand.as_joker_hand(),
-        value: b.value,
-    }).collect::<Vec<_>>();
+    let mut bids = bids
+        .iter()
+        .map(|b| Bid {
+            hand: b.hand.as_joker_hand(),
+            value: b.value,
+        })
+        .collect::<Vec<_>>();
 
     bids.sort();
     bids.iter()
@@ -307,7 +316,6 @@ pub fn part2_score(input: &str) -> usize {
         .map(|(rank, bid)| (rank + 1) * bid.value as usize)
         .sum()
 }
-
 
 // Stategy:
 //   - ordered type (like single)
@@ -456,27 +464,47 @@ mod tests {
         assert!(b1 > b2);
         assert!(b2 < b1);
     }
-    
+
     fn as_hand(input: &str) -> Hand {
         parse_hand(input).expect("valid").1
     }
 
     #[test]
     fn test_joker() {
-        assert_eq!(as_hand("1JJ23").as_joker_hand().hand_type(), Type::ThreeOfAKind);
+        assert_eq!(
+            as_hand("1JJ23").as_joker_hand().hand_type(),
+            Type::ThreeOfAKind
+        );
         assert_eq!(as_hand("1J234").as_joker_hand().hand_type(), Type::OnePair);
-        assert_eq!(as_hand("1122J").as_joker_hand().hand_type(), Type::FullHouse);
-        assert_eq!(as_hand("1112J").as_joker_hand().hand_type(), Type::FourOfAKind);
-        assert_eq!(as_hand("1111J").as_joker_hand().hand_type(), Type::FiveOfAKind);
-        assert_eq!(as_hand("1J2JJ").as_joker_hand().hand_type(), Type::FourOfAKind);
-        assert_eq!(as_hand("JJ2JJ").as_joker_hand().hand_type(), Type::FiveOfAKind);
-        assert_eq!(as_hand("JJJJJ").as_joker_hand().hand_type(), Type::FiveOfAKind);
-        
+        assert_eq!(
+            as_hand("1122J").as_joker_hand().hand_type(),
+            Type::FullHouse
+        );
+        assert_eq!(
+            as_hand("1112J").as_joker_hand().hand_type(),
+            Type::FourOfAKind
+        );
+        assert_eq!(
+            as_hand("1111J").as_joker_hand().hand_type(),
+            Type::FiveOfAKind
+        );
+        assert_eq!(
+            as_hand("1J2JJ").as_joker_hand().hand_type(),
+            Type::FourOfAKind
+        );
+        assert_eq!(
+            as_hand("JJ2JJ").as_joker_hand().hand_type(),
+            Type::FiveOfAKind
+        );
+        assert_eq!(
+            as_hand("JJJJJ").as_joker_hand().hand_type(),
+            Type::FiveOfAKind
+        );
+
         // no jokers
         assert_eq!(as_hand("12345").as_joker_hand().hand_type(), Type::HighCard);
         assert_eq!(as_hand("11345").as_joker_hand().hand_type(), Type::OnePair);
     }
-    
 
     #[test]
     fn check_order() {
