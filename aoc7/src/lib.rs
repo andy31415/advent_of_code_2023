@@ -10,6 +10,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
+use tracing_subscriber::fmt::format::Full;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Item {
@@ -19,6 +20,17 @@ pub enum Item {
     Three(u8),
     Four(u8),
     Five(u8),
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub enum Type {
+    FiveOfAKind,
+    FourOfAKind,
+    FullHouse,
+    ThreeOfAKind,
+    TwoPair,
+    OnePair,
+    HighCard
 }
 
 impl Item {
@@ -81,8 +93,9 @@ impl From<(u8, i32)> for Item {
     }
 }
 
-#[derive(Debug, PartialEq, Ord, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Hand {
+    cards: Vec<u8>, // cards in order
     items: Vec<Item>,
 }
 
@@ -91,43 +104,66 @@ impl std::fmt::Display for Hand {
         for x in self.items.iter() {
             f.write_fmt(format_args!("{}", x))?;
         }
+        f.write_str("(")?;
+        for x in self.cards.iter() {
+            f.write_fmt(format_args!("{}:", x))?;
+        }
+        f.write_str(")")?;
         Ok(())
     }
 }
 
+impl Hand {
+    pub fn hand_type(&self) -> Type {
+        match self.items.get(0).expect("valid hand") {
+            Item::Five(_) => Type::FiveOfAKind,
+            Item::Four(_) => Type::FourOfAKind,
+            Item::Three(_) => match self.items.get(1).expect("valid input") {
+                Item::Pair(_) => Type::FullHouse,
+                _ => Type::ThreeOfAKind,
+            }
+            Item::Pair(_) => match self.items.get(1).expect("valid input") {
+                Item::Pair(_) => Type::TwoPair,
+                _ => Type::OnePair,
+            }
+            Item::Card(_) => Type::HighCard,
+        }
+    }
+    
+    
+}
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self.items.len() > 1 && other.items.len() > 1 {
-            // two pair wins over one pair
-            let (s1, s2) = (self.items.get(0).unwrap(), self.items.get(1).unwrap());
+        Some(self.cmp(&other))
+    }
+}
 
-            let p1 = matches!(s1, Item::Pair(_));
-            let p2 = matches!(s2, Item::Pair(_));
+impl Ord for Hand {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.hand_type() == other.hand_type() {
+            // NOT a card game: order is based on cards that are dealt
+            return self.cards.cmp(&other.cards);
+        }
 
-            let (o1, o2) = (other.items.get(0).unwrap(), other.items.get(1).unwrap());
-            let op1 = matches!(o1, Item::Pair(_));
-            let op2 = matches!(o2, Item::Pair(_));
-                
-            if p1 && p2 && op1 && !op2 {
-                return Some(std::cmp::Ordering::Greater);
-            }
-            if p1 && !p2 && op1 && op2 {
-                return Some(std::cmp::Ordering::Less);
-            }
-            // full house wins over 3 of a kind
-
-            if matches!(s1, Item::Three(_)) && matches!(o1, Item::Three(_)) {
-                // both three of a kind, pair is a full house
-                if self.items.len() == 2 && other.items.len() == 3 {
-                   return Some(std::cmp::Ordering::Greater);
-                }
-                if self.items.len() == 3 && other.items.len() == 2 {
-                   return Some(std::cmp::Ordering::Less);
-                }
-                
-            }
-        } 
-        self.items.partial_cmp(&other.items)
+        // if different lenght, shorter wins
+        // this makes:
+        //   two pair win over one pair
+        //   full wins over three of a kind
+        //  Type        | Length
+        // -------------+-----------
+        //  5 of a kind | 1
+        //  4 of a kind | 2
+        //  Full house  | 2
+        //  3 of a kind | 3
+        //  two pair    | 3
+        //  one pair    | 4
+        //  high card   | 5
+        if self.items.len() < other.items.len() {
+            return std::cmp::Ordering::Greater;
+        } else if self.items.len() > other.items.len() {
+            return std::cmp::Ordering::Less;
+        }
+        self.items.cmp(&other.items)
     }
 }
 
@@ -145,6 +181,8 @@ pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
         )),
     )
     .parse(input)?;
+    
+    let cards = items.clone();
 
     items.sort();
 
@@ -165,7 +203,7 @@ pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
     result.sort();
     result.reverse();
 
-    Ok((span, Hand { items: result }))
+    Ok((span, Hand { cards, items: result }))
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
@@ -179,6 +217,8 @@ impl std::fmt::Display for Bid {
         f.write_fmt(format_args!("Bid: {} -> {}", self.hand, self.value))
     }
 }
+
+
 
 pub fn parse_bid(input: &str) -> IResult<&str, Bid> {
     tuple((parse_hand, space1, nom::character::complete::u32))
@@ -196,11 +236,6 @@ pub fn part1_score(input: &str) -> usize {
 
     // smallest hand goes first
     bids.sort();
-    eprintln!("SORTED");
-    for b in bids.iter() {
-        eprintln!("{}", b);
-    }
-    eprintln!("LEN: {}", bids.len());
     bids.iter()
         .enumerate()
         .map(|(rank, bid)| (rank + 1) * bid.value as usize)
@@ -233,31 +268,36 @@ mod tests {
                                 Item::Card(13),
                                 Item::Card(10),
                                 Item::Card(2)
-                            ]
+                            ],
+                            cards: vec![3,2,10,3,13],
                         },
                         value: 765
                     },
                     Bid {
                         hand: Hand {
-                            items: vec![Item::Three(5), Item::Card(11), Item::Card(10)]
+                            items: vec![Item::Three(5), Item::Card(11), Item::Card(10)],
+                            cards: vec![10,5,5,11,5],
                         },
                         value: 684
                     },
                     Bid {
                         hand: Hand {
-                            items: vec![Item::Pair(13), Item::Pair(7), Item::Card(6)]
+                            items: vec![Item::Pair(13), Item::Pair(7), Item::Card(6)],
+                            cards: vec![13,13,6,7,7],
                         },
                         value: 28
                     },
                     Bid {
                         hand: Hand {
-                            items: vec![Item::Pair(11), Item::Pair(10), Item::Card(13)]
+                            items: vec![Item::Pair(11), Item::Pair(10), Item::Card(13)],
+                            cards: vec![13,10,11,11,10]
                         },
                         value: 220
                     },
                     Bid {
                         hand: Hand {
-                            items: vec![Item::Three(12), Item::Card(14), Item::Card(11)]
+                            items: vec![Item::Three(12), Item::Card(14), Item::Card(11)],
+                            cards: vec![12,12,12,11,14]
                         },
                         value: 483
                     }
@@ -273,7 +313,8 @@ mod tests {
             Ok((
                 "",
                 Hand {
-                    items: vec![Item::Four(14), Item::Card(8)]
+                    items: vec![Item::Four(14), Item::Card(8)],
+                    cards: vec![14,14,8,14,14],
                 }
             ))
         );
@@ -282,17 +323,22 @@ mod tests {
             Ok((
                 "",
                 Hand {
-                    items: vec![Item::Pair(1), Item::Card(12), Item::Card(10), Item::Card(8)]
+                    items: vec![Item::Pair(1), Item::Card(12), Item::Card(10), Item::Card(8)],
+                    cards: vec![10,12,1,8,1]
                 }
             ))
         );
     }
-    
+
     fn assert_ordered(a: &str, b: &str) {
         let a = parse_hand(a).expect("valid").1;
         let b = parse_hand(b).expect("valid").1;
-        assert!(a > b);
-        assert!(b < a);
+        if a < b {
+            panic!("{} > {} failed", a, b);
+        } 
+        if b > a {
+            panic!("{} < {} failed", b, a);
+        } 
     }
 
     #[test]
@@ -303,14 +349,19 @@ mod tests {
         assert_ordered("TTT98", "23432");
         assert_ordered("23432", "A23A4");
         assert_ordered("A23A4", "23456");
-        
+
         // change things up
-        assert_ordered("11234", "AKQT9");
-        assert_ordered("11223", "AAKQT");
-        assert_ordered("11123", "AAKKQ");
-        assert_ordered("11122", "AAAKQ");
-        assert_ordered("11112", "AAAKK");
-        assert_ordered("11111", "AAAAK");
+        assert_ordered("22345", "AKQT9");
+        assert_ordered("22334", "AAKQT");
+        assert_ordered("22234", "AAKKQ");
+        assert_ordered("33344", "AAAKQ");
+        assert_ordered("22223", "AAAKK");
+        assert_ordered("22222", "AAAAK");
+        // same type
+        assert_ordered("A2234", "93345");
+        assert_ordered("A2233", "9AAKK");
+        assert_ordered("A3334", "9AAA5");
+        assert_ordered("A3333", "9AAAA");
     }
 
     #[test]
