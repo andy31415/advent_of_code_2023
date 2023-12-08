@@ -11,7 +11,7 @@ use nom::{
 };
 use nom_supreme::ParserExt;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Item {
     // A is T is 10, J is 11, Q is 12 and so on
     Card(u8),
@@ -29,19 +29,22 @@ pub enum Type {
     ThreeOfAKind,
     TwoPair,
     OnePair,
-    HighCard
+    HighCard,
 }
 
 impl Item {
+    pub fn value(&self) -> u8 {
+        match self {
+            Item::Card(x) => *x,
+            Item::Pair(x) => *x,
+            Item::Three(x) => *x,
+            Item::Four(x) => *x,
+            Item::Five(x) => *x,
+        }
+    }
     pub fn display_char(&self) -> char {
-        let v = match self {
-            Item::Card(x) => x,
-            Item::Pair(x) => x,
-            Item::Three(x) => x,
-            Item::Four(x) => x,
-            Item::Five(x) => x,
-        };
-        match v {
+        match self.value() {
+            0 => '*', // Joker ??
             2 => '2',
             3 => '3',
             4 => '4',
@@ -55,7 +58,7 @@ impl Item {
             12 => 'Q',
             13 => 'K',
             14 => 'A',
-            _ => panic!("Invalid value: {}", v),
+            _ => panic!("Invalid value: {}", self.value()),
         }
     }
 
@@ -113,6 +116,46 @@ impl std::fmt::Display for Hand {
 }
 
 impl Hand {
+    pub fn as_joker_hand(&self) -> Hand {
+        // constructs a card with jokers
+        // replaces all items with a `J` as a 0 (to be a joker)
+        // replaces the formatted hand
+        let mut result = self.clone();
+
+        result.cards = self
+            .cards
+            .iter()
+            .map(|c| if *c == 11 { 0 as u8 } else { *c })
+            .collect();
+
+        let joker_count = result.cards.iter().filter(|c| **c == 0).count() as u8;
+
+        let mut remaining_cards =
+            into_items(result.cards.clone().into_iter().filter(|c| *c != 0).collect());
+        
+        result.items = if remaining_cards.len() == 0 {
+            vec![Item::Five(0)] // five jokers
+        } else {
+            // TODO: upgrade first card with these many jokers
+            let (left, right) = remaining_cards.split_at_mut(1);
+            assert!(left.len() == 1);
+            let mut upd = Vec::new();
+            upd.push(match left[0].count() + joker_count {
+                1 => Item::Card(left[0].value()),
+                2 => Item::Pair(left[0].value()),
+                3 => Item::Three(left[0].value()),
+                4 => Item::Four(left[0].value()),
+                5 => Item::Five(left[0].value()),
+                _ => panic!("Invalid state")
+            });
+            for rest in right {
+               upd.push(*rest);
+            }
+            upd
+        };
+        result
+    }
+
     pub fn hand_type(&self) -> Type {
         match self.items.get(0).expect("valid hand") {
             Item::Five(_) => Type::FiveOfAKind,
@@ -120,16 +163,14 @@ impl Hand {
             Item::Three(_) => match self.items.get(1).expect("valid input") {
                 Item::Pair(_) => Type::FullHouse,
                 _ => Type::ThreeOfAKind,
-            }
+            },
             Item::Pair(_) => match self.items.get(1).expect("valid input") {
                 Item::Pair(_) => Type::TwoPair,
                 _ => Type::OnePair,
-            }
+            },
             Item::Card(_) => Type::HighCard,
         }
     }
-    
-    
 }
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -166,23 +207,7 @@ impl Ord for Hand {
     }
 }
 
-pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
-    let (span, mut items) = nom::multi::many_m_n(
-        5,
-        5,
-        alt((
-            one_of("0123456789").map(|c| c.to_digit(10).expect("valid digit") as u8),
-            value(10, tag("T")),
-            value(11, tag("J")),
-            value(12, tag("Q")),
-            value(13, tag("K")),
-            value(14, tag("A")),
-        )),
-    )
-    .parse(input)?;
-    
-    let cards = items.clone();
-
+pub fn into_items(mut items: Vec<u8>) -> Vec<Item> {
     items.sort();
 
     // accumulate items and add them as needed
@@ -198,11 +223,38 @@ pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
             previous = (*x, 1)
         }
     }
-    result.push(previous.into());
+    if previous.1 != 0 {
+      result.push(previous.into());
+    }
     result.sort();
     result.reverse();
+    result
+}
 
-    Ok((span, Hand { cards, items: result }))
+pub fn parse_hand(input: &str) -> IResult<&str, Hand> {
+    let (span, items) = nom::multi::many_m_n(
+        5,
+        5,
+        alt((
+            one_of("0123456789").map(|c| c.to_digit(10).expect("valid digit") as u8),
+            value(10, tag("T")),
+            value(11, tag("J")),
+            value(12, tag("Q")),
+            value(13, tag("K")),
+            value(14, tag("A")),
+        )),
+    )
+    .parse(input)?;
+
+    let cards = items.clone();
+
+    Ok((
+        span,
+        Hand {
+            cards,
+            items: into_items(items),
+        },
+    ))
 }
 
 #[derive(Debug, PartialEq, Clone, Eq, PartialOrd, Ord)]
@@ -216,8 +268,6 @@ impl std::fmt::Display for Bid {
         f.write_fmt(format_args!("Bid: {} -> {}", self.hand, self.value))
     }
 }
-
-
 
 pub fn parse_bid(input: &str) -> IResult<&str, Bid> {
     tuple((parse_hand, space1, nom::character::complete::u32))
@@ -268,35 +318,35 @@ mod tests {
                                 Item::Card(10),
                                 Item::Card(2)
                             ],
-                            cards: vec![3,2,10,3,13],
+                            cards: vec![3, 2, 10, 3, 13],
                         },
                         value: 765
                     },
                     Bid {
                         hand: Hand {
                             items: vec![Item::Three(5), Item::Card(11), Item::Card(10)],
-                            cards: vec![10,5,5,11,5],
+                            cards: vec![10, 5, 5, 11, 5],
                         },
                         value: 684
                     },
                     Bid {
                         hand: Hand {
                             items: vec![Item::Pair(13), Item::Pair(7), Item::Card(6)],
-                            cards: vec![13,13,6,7,7],
+                            cards: vec![13, 13, 6, 7, 7],
                         },
                         value: 28
                     },
                     Bid {
                         hand: Hand {
                             items: vec![Item::Pair(11), Item::Pair(10), Item::Card(13)],
-                            cards: vec![13,10,11,11,10]
+                            cards: vec![13, 10, 11, 11, 10]
                         },
                         value: 220
                     },
                     Bid {
                         hand: Hand {
                             items: vec![Item::Three(12), Item::Card(14), Item::Card(11)],
-                            cards: vec![12,12,12,11,14]
+                            cards: vec![12, 12, 12, 11, 14]
                         },
                         value: 483
                     }
@@ -313,7 +363,7 @@ mod tests {
                 "",
                 Hand {
                     items: vec![Item::Four(14), Item::Card(8)],
-                    cards: vec![14,14,8,14,14],
+                    cards: vec![14, 14, 8, 14, 14],
                 }
             ))
         );
@@ -323,7 +373,7 @@ mod tests {
                 "",
                 Hand {
                     items: vec![Item::Pair(1), Item::Card(12), Item::Card(10), Item::Card(8)],
-                    cards: vec![10,12,1,8,1]
+                    cards: vec![10, 12, 1, 8, 1]
                 }
             ))
         );
@@ -334,10 +384,10 @@ mod tests {
         let b = parse_hand(b).expect("valid").1;
         if a < b {
             panic!("{} > {} failed", a, b);
-        } 
+        }
         if b > a {
             panic!("{} < {} failed", b, a);
-        } 
+        }
     }
 
     #[test]
@@ -383,6 +433,27 @@ mod tests {
         assert!(b1 > b2);
         assert!(b2 < b1);
     }
+    
+    fn as_hand(input: &str) -> Hand {
+        parse_hand(input).expect("valid").1
+    }
+
+    #[test]
+    fn test_joker() {
+        assert_eq!(as_hand("1JJ23").as_joker_hand().hand_type(), Type::ThreeOfAKind);
+        assert_eq!(as_hand("1J234").as_joker_hand().hand_type(), Type::OnePair);
+        assert_eq!(as_hand("1122J").as_joker_hand().hand_type(), Type::FullHouse);
+        assert_eq!(as_hand("1112J").as_joker_hand().hand_type(), Type::FourOfAKind);
+        assert_eq!(as_hand("1111J").as_joker_hand().hand_type(), Type::FiveOfAKind);
+        assert_eq!(as_hand("1J2JJ").as_joker_hand().hand_type(), Type::FourOfAKind);
+        assert_eq!(as_hand("JJ2JJ").as_joker_hand().hand_type(), Type::FiveOfAKind);
+        assert_eq!(as_hand("JJJJJ").as_joker_hand().hand_type(), Type::FiveOfAKind);
+        
+        // no jokers
+        assert_eq!(as_hand("12345").as_joker_hand().hand_type(), Type::HighCard);
+        assert_eq!(as_hand("11345").as_joker_hand().hand_type(), Type::OnePair);
+    }
+    
 
     #[test]
     fn check_order() {
