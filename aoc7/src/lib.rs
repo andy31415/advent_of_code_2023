@@ -291,6 +291,24 @@ pub fn part1_score(input: &str) -> usize {
         .sum()
 }
 
+pub fn part2_score(input: &str) -> usize {
+    let (left, bids) = parse_input(input).expect("valid input");
+    assert_eq!(left, "");
+
+    // smallest hand goes first
+    let mut bids = bids.iter().map(|b| Bid {
+        hand: b.hand.as_joker_hand(),
+        value: b.value,
+    }).collect::<Vec<_>>();
+
+    bids.sort();
+    bids.iter()
+        .enumerate()
+        .map(|(rank, bid)| (rank + 1) * bid.value as usize)
+        .sum()
+}
+
+
 // Stategy:
 //   - ordered type (like single)
 
@@ -301,6 +319,11 @@ mod tests {
     #[test]
     fn test_part_1() {
         assert_eq!(part1_score(include_str!("../example.txt")), 6440);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part2_score(include_str!("../example.txt")), 5905);
     }
 
     #[test]

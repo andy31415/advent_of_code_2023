@@ -1,4 +1,4 @@
-use aoc7::part1_score;
+use aoc7::{part1_score, part2_score};
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -12,5 +12,6 @@ fn main() {
     let s1 = part1_score(include_str!("../input.txt"));
     println!("Part 1: {}", s1);
 
-    println!("Part 2:");
+    let s2 = part2_score(include_str!("../input.txt"));
+    println!("Part 2: {}", s2);
 }
