@@ -35,12 +35,10 @@ struct Location<'a> {
 
 impl<'a> Location<'a> {
     fn new(name: &'a str) -> Self {
-        let ghost_start = name.chars().last() == Some('A');
-        let ghost_end = name.chars().last() == Some('Z');
         Self {
             name,
-            ghost_start,
-            ghost_end,
+            ghost_start: name.ends_with('A'),
+            ghost_end: name.ends_with('Z'),
         }
     }
     fn is_ghost_start(&self) -> bool {
@@ -54,7 +52,7 @@ impl<'a> Location<'a> {
 
 fn parse_location(input: &str) -> IResult<&str, Location> {
     recognize(many_m_n(3, 3, none_of("=(), \n")))
-        .map(|s| Location::new(s))
+        .map(Location::new)
         .parse(input)
 }
 
@@ -94,7 +92,7 @@ fn parse_input(input: &str) -> IResult<&str, InputData> {
 
     debug_assert_eq!(span, "");
 
-    return Ok((span, result));
+    Ok((span, result))
 }
 
 struct DirectionLoop {
@@ -115,12 +113,6 @@ struct DirectionIter<'a> {
     pos: usize,
 }
 
-impl<'a> DirectionIter<'a> {
-    pub fn pos(&self) -> usize {
-        self.pos
-    }
-}
-
 impl<'a> Iterator for DirectionIter<'a> {
     type Item = Direction;
 
@@ -132,7 +124,7 @@ impl<'a> Iterator for DirectionIter<'a> {
             self.pos = 0;
         }
 
-        return Some(*result);
+        Some(*result)
     }
 }
 
@@ -167,10 +159,10 @@ impl<'a> Ghost<'a> {
 
         while !position.is_ghost_end() {
             position = match moves.next().expect("Moves never end") {
-                Direction::Left => &map.map.get(&position).unwrap().0,
-                Direction::Right => &map.map.get(&position).unwrap().1,
+                Direction::Left => &map.map.get(position).unwrap().0,
+                Direction::Right => &map.map.get(position).unwrap().1,
             };
-            time = time + 1;
+            time += 1;
         }
 
         // we have a start position. Now figure out all ends
@@ -182,7 +174,7 @@ impl<'a> Ghost<'a> {
         let mut fill_pos = FillKey(moves.pos, fill);
         while !next_stop.contains_key(&fill_pos) {
             // given the current pos, find out how many steps left
-            let mut steps = 0 as usize;
+            let mut steps = 0;
             loop {
                 steps += 1;
                 fill = match moves.next().expect("Moves never end") {
@@ -217,16 +209,16 @@ impl<'a> Ghost<'a> {
     }
 }
 
-impl<'a> Into<Map<'a>> for InputData<'a> {
-    fn into(self) -> Map<'a> {
+impl<'a> From<InputData<'a>> for Map<'a> {
+    fn from(input: InputData<'a>) -> Self {
         let mut map = HashMap::new();
-        for k in self.map_list {
+        for k in input.map_list {
             map.insert(k.key, (k.left, k.right));
         }
 
         Map {
             directions: DirectionLoop {
-                steps: self.directions,
+                steps: input.directions,
             },
             map,
         }
@@ -240,8 +232,8 @@ pub fn part1_steps(input: &str) -> usize {
 
     for (i, d) in map.directions.iter().enumerate() {
         position = match d {
-            Direction::Left => &map.map.get(&position).expect("valid").0,
-            Direction::Right => &map.map.get(&position).expect("valid").1,
+            Direction::Left => &map.map.get(position).expect("valid").0,
+            Direction::Right => &map.map.get(position).expect("valid").1,
         };
 
         if *position == target {
@@ -255,7 +247,7 @@ pub fn part1_steps(input: &str) -> usize {
 pub fn part2_steps(input: &str) -> usize {
     let map: Map = parse_input(input).expect("valid input").1.into();
 
-    let mut ghost_positions = map
+    let ghost_positions = map
         .map
         .keys()
         .filter(|k| k.is_ghost_start())
@@ -263,10 +255,8 @@ pub fn part2_steps(input: &str) -> usize {
 
     let mut ghosts = ghost_positions
         .iter()
-        .map(|p| Ghost::new(&p, &map))
+        .map(|p| Ghost::new(p, &map))
         .collect::<Vec<_>>();
-
-    let mut report_time = 1000000;
 
     loop {
         let a = ghosts.iter().map(|g| g.time).min().expect("have ghosts");
