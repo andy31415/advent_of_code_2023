@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -71,9 +73,86 @@ fn parse_input(input: &str) -> IResult<&str, InputData> {
     .parse(input)
 }
 
+struct DirectionLoop {
+    steps: Vec<Direction>,
+}
+
+impl DirectionLoop {
+    pub fn iter(&self) -> DirectionIter {
+        DirectionIter {
+            steps: &self.steps,
+            pos: 0,
+        }
+    }
+}
+
+struct DirectionIter<'a> {
+    steps: &'a Vec<Direction>,
+    pos: usize,
+}
+
+impl<'a> Iterator for DirectionIter<'a> {
+    type Item = Direction;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.steps.get(self.pos).expect("Non-empty iterator");
+
+        self.pos += 1;
+        if self.pos >= self.steps.len() {
+            self.pos = 0;
+        }
+
+        return Some(*result);
+    }
+}
+
+struct Map<'a> {
+    directions: DirectionLoop,
+    map: HashMap<Location<'a>, (Location<'a>, Location<'a>)>,
+}
+
+impl<'a> Into<Map<'a>> for InputData<'a> {
+    fn into(self) -> Map<'a> {
+        let mut map = HashMap::new();
+        for k in self.map_list {
+            map.insert(k.key, (k.left, k.right));
+        }
+
+        Map {
+            directions: DirectionLoop {
+                steps: self.directions,
+            },
+            map,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_direction_loop_iterate() {
+        let d = DirectionLoop {
+            steps: vec![Direction::Left, Direction::Left, Direction::Right],
+        };
+
+        assert_eq!(
+            d.iter().take(10).collect::<Vec<_>>(),
+            vec![
+                Direction::Left,
+                Direction::Left,
+                Direction::Right,
+                Direction::Left,
+                Direction::Left,
+                Direction::Right,
+                Direction::Left,
+                Direction::Left,
+                Direction::Right,
+                Direction::Left,
+            ]
+        );
+    }
 
     #[test]
     fn test_parse_input() {
