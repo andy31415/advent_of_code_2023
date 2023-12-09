@@ -203,10 +203,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(
-            part2("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"),
-            2
-        );
+        assert_eq!(part2("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"), 2);
     }
 
     #[test]
