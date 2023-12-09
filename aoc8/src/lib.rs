@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use nom::{
     branch::alt,
@@ -28,6 +28,20 @@ fn parse_direction_list(input: &str) -> IResult<&str, Vec<Direction>> {
 // a location, generally 3-letter location
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 struct Location<'a>(&'a str);
+
+impl<'a> Location<'a> {
+    fn is_ghost_start(&self) -> bool {
+        // only if ends with a
+        let Location(p) = self;
+        p.chars().last() == Some('A')
+    }
+
+    fn is_ghost_end(&self) -> bool {
+        // only if ends with a
+        let Location(p) = self;
+        p.chars().last() == Some('Z')
+    }
+}
 
 fn parse_location(input: &str) -> IResult<&str, Location> {
     recognize(many_m_n(3, 3, none_of("=(), \n")))
@@ -147,6 +161,33 @@ pub fn part1_steps(input: &str) -> usize {
     panic!("should never finish")
 }
 
+pub fn part2_steps(input: &str) -> usize {
+    let map: Map = parse_input(input).expect("valid input").1.into();
+
+    let mut ghost_positions = map
+        .map
+        .keys()
+        .filter(|k| k.is_ghost_start())
+        .collect::<HashSet<_>>();
+
+    for (i, d) in map.directions.iter().enumerate() {
+        // move all ghost positions
+        ghost_positions = ghost_positions
+            .iter()
+            .map(|position| match d {
+                Direction::Left => &map.map.get(&position).expect("valid").0,
+                Direction::Right => &map.map.get(&position).expect("valid").1,
+            })
+            .collect();
+
+        if ghost_positions.iter().all(|p| p.is_ghost_end()) {
+            return i + 1;
+        }
+    }
+
+    panic!("should never finish")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,6 +195,11 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1_steps(include_str!("../example.txt")), 6);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2_steps(include_str!("../example2.txt")), 6);
     }
 
     #[test]
