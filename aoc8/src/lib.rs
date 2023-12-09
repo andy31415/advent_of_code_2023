@@ -147,9 +147,9 @@ struct Map<'a> {
 ///   - can always move to the next stop (generally fast amortized time)
 #[derive(Debug, PartialEq)]
 struct Ghost<'a> {
-    time: usize,                                             // current position in time
-    step: usize, // current position as "pos"
-    position: &'a Location<'a>,                                  // a STOP position in time
+    time: usize,                                           // current position in time
+    step: usize,                                           // current position as "pos"
+    position: &'a Location<'a>,                            // a STOP position in time
     next_stop: HashMap<FillKey<'a>, (usize, FillKey<'a>)>, // how many steps to move to the next stop
 }
 
@@ -214,7 +214,6 @@ impl<'a> Ghost<'a> {
         self.time += dt;
         self.step = p.0;
         self.position = p.1;
-        
     }
 }
 
@@ -255,29 +254,28 @@ pub fn part1_steps(input: &str) -> usize {
 
 pub fn part2_steps(input: &str) -> usize {
     let map: Map = parse_input(input).expect("valid input").1.into();
-    
+
     let mut ghost_positions = map
         .map
         .keys()
         .filter(|k| k.is_ghost_start())
         .collect::<HashSet<_>>();
-    
-    let mut ghosts = ghost_positions.iter().map(|p| 
-                                                Ghost::new(&p, &map)
-    ).collect::<Vec<_>>();
 
-    eprintln!("GHOSTS: {:?}", ghosts);
-    
+    let mut ghosts = ghost_positions
+        .iter()
+        .map(|p| Ghost::new(&p, &map))
+        .collect::<Vec<_>>();
+
     let mut report_time = 1000000;
-    
+
     loop {
         let a = ghosts.iter().map(|g| g.time).min().expect("have ghosts");
         let b = ghosts.iter().map(|g| g.time).max().expect("have ghosts");
-        
+
         if a == b {
             return a;
         }
-        
+
         for g in ghosts.iter_mut() {
             while g.time < b {
                 g.move_to_next_stop();

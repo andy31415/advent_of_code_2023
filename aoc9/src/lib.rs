@@ -93,7 +93,7 @@ mod tests {
         assert_eq!(part2("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"), 2);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_parse_input() {
         assert_eq!(
             parse_input("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45")
@@ -117,7 +117,7 @@ mod tests {
         )
     }
 
-    #[test]
+    #[test_log::test]
     fn test_parse_sequence() {
         assert_eq!(
             parse_sequence("0 3 6 9 12 15").expect("valid").1,
