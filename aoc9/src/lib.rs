@@ -4,6 +4,7 @@ use nom::{
     multi::separated_list1,
     IResult, Parser,
 };
+use tracing::info;
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 struct Sequence {
@@ -17,6 +18,7 @@ fn parse_sequence(input: &str) -> IResult<&str, Sequence> {
 }
 
 impl Sequence {
+    #[tracing::instrument(name="towers of sequence")]
     pub fn towers(&self) -> Vec<Vec<i64>> {
         let mut towers = Vec::new();
 
@@ -28,6 +30,7 @@ impl Sequence {
                 .map(|(a, b)| b - a)
                 .collect();
         }
+        info!("TOWERS: {:?}", &towers);
         towers
     }
 
@@ -77,7 +80,7 @@ pub fn part2(input: &str) -> i64 {
 mod tests {
     use super::*;
 
-    #[test]
+    #[test_log::test]
     fn test_part1() {
         assert_eq!(
             part1("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"),
@@ -85,7 +88,7 @@ mod tests {
         );
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part2() {
         assert_eq!(part2("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"), 2);
     }

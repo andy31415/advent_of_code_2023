@@ -21,9 +21,12 @@ tracing-tracy = "*"
 tracy-client = "*"
 tracy-client-sys = "*"
 itertools = "*"
+test-log = {version = "*", features=["trace"]}
 
 [profile.release]
 debug = 1
+optlevel = "3"
+
 
 [profile.flamegraph]
 inherits = "release"
