@@ -92,7 +92,7 @@ fn parse_input(input: &str) -> IResult<&str, InputData> {
     })
     .parse(input)?;
 
-    assert_eq!(span, "");
+    debug_assert_eq!(span, "");
 
     return Ok((span, result));
 }
@@ -159,7 +159,7 @@ struct FillKey<'a>(usize, &'a Location<'a>);
 impl<'a> Ghost<'a> {
     fn new(start: &'a Location<'a>, map: &'a Map<'a>) -> Ghost<'a> {
         // figure out the path of this ghost completely
-        assert!(start.is_ghost_start());
+        debug_assert!(start.is_ghost_start());
         let mut position = start;
         let mut time = 0;
 

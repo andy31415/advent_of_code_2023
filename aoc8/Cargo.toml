@@ -14,6 +14,9 @@ name="aoc8"
 path="benches/aoc8.rs"
 harness = false
 
+[profile.release]
+optlevel = "3"
+
 [features]
 dhat-heap = []
 
