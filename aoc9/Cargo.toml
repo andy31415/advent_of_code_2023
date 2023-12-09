@@ -24,8 +24,6 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 nom.workspace = true
 nom-supreme = "0.8.0"
-rulinalg = "0.4.2"
-rstest.workspace = true
 
 [dev-dependencies]
 itertools = {workspace=true}
