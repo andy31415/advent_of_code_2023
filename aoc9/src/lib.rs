@@ -98,7 +98,6 @@ impl From<Sequence> for Polynomial {
             n,
             n,
             (0..n)
-                .into_iter()
                 .flat_map(|m| {
                     let mut v = 1.0;
                     let mut cnt = 0;
