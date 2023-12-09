@@ -148,8 +148,9 @@ struct Map<'a> {
 #[derive(Debug, PartialEq)]
 struct Ghost<'a> {
     time: usize,                                             // current position in time
+    step: usize, // current position as "pos"
     position: &'a Location<'a>,                                  // a STOP position in time
-    next_stop: HashMap<FillKey<'a>, (usize, &'a Location<'a>)>, // how many steps to move to the next stop
+    next_stop: HashMap<FillKey<'a>, (usize, FillKey<'a>)>, // how many steps to move to the next stop
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -174,6 +175,7 @@ impl<'a> Ghost<'a> {
 
         // we have a start position. Now figure out all ends
         let position = position;
+        let step = moves.pos;
         let mut next_stop = HashMap::new();
 
         let mut fill = position;
@@ -187,23 +189,32 @@ impl<'a> Ghost<'a> {
                     Direction::Left => &map.map.get(fill).unwrap().0,
                     Direction::Right => &map.map.get(fill).unwrap().1,
                 };
-                eprintln!("{:?}", fill);
-
                 if fill.is_ghost_end() {
                     break;
                 }
             }
-            eprintln!("{:?} -> {:?}", fill_pos, (steps, fill));
-            next_stop.insert(fill_pos, (steps, fill));
+            let target = FillKey(moves.pos, fill);
+            next_stop.insert(fill_pos, (steps, target));
             // figure out from where we have to move
             fill_pos = FillKey(moves.pos, fill);
         }
 
         Ghost {
             time,
+            step,
             position,
             next_stop,
         }
+    }
+
+    fn move_to_next_stop(&mut self) {
+        // we are at time, position
+        let p = FillKey(self.step, self.position);
+        let (dt, p) = self.next_stop.get(&p).expect("Already mapped");
+        self.time += dt;
+        self.step = p.0;
+        self.position = p.1;
+        
     }
 }
 
@@ -255,26 +266,24 @@ pub fn part2_steps(input: &str) -> usize {
                                                 Ghost::new(&p, &map)
     ).collect::<Vec<_>>();
 
-    eprintln!("GHOSTS: {:#?}", ghosts);
-
-    /*
-    for (i, d) in map.directions.iter().enumerate() {
-        // move all ghost positions
-        ghost_positions = ghost_positions
-            .iter()
-            .map(|position| match d {
-                Direction::Left => &map.map.get(&position).expect("valid").0,
-                Direction::Right => &map.map.get(&position).expect("valid").1,
-            })
-            .collect();
-
-        if ghost_positions.iter().all(|p| p.is_ghost_end()) {
-            return i + 1;
-        }
-    }*/
+    eprintln!("GHOSTS: {:?}", ghosts);
     
-
-    panic!("should never finish")
+    let mut report_time = 1000000;
+    
+    loop {
+        let a = ghosts.iter().map(|g| g.time).min().expect("have ghosts");
+        let b = ghosts.iter().map(|g| g.time).max().expect("have ghosts");
+        
+        if a == b {
+            return a;
+        }
+        
+        for g in ghosts.iter_mut() {
+            while g.time < b {
+                g.move_to_next_stop();
+            }
+        }
+    }
 }
 
 #[cfg(test)]
