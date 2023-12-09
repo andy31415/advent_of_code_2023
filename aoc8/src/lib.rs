@@ -27,25 +27,34 @@ fn parse_direction_list(input: &str) -> IResult<&str, Vec<Direction>> {
 
 // a location, generally 3-letter location
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
-struct Location<'a>(&'a str);
+struct Location<'a> {
+    name: &'a str,
+    ghost_start: bool,
+    ghost_end: bool,
+}
 
 impl<'a> Location<'a> {
+    fn new(name: &'a str) -> Self {
+        let ghost_start = name.chars().last() == Some('A');
+        let ghost_end = name.chars().last() == Some('Z');
+        Self {
+            name,
+            ghost_start,
+            ghost_end,
+        }
+    }
     fn is_ghost_start(&self) -> bool {
-        // only if ends with a
-        let Location(p) = self;
-        p.chars().last() == Some('A')
+        self.ghost_start
     }
 
     fn is_ghost_end(&self) -> bool {
-        // only if ends with a
-        let Location(p) = self;
-        p.chars().last() == Some('Z')
+        self.ghost_end
     }
 }
 
 fn parse_location(input: &str) -> IResult<&str, Location> {
     recognize(many_m_n(3, 3, none_of("=(), \n")))
-        .map(|s| Location(s))
+        .map(|s| Location::new(s))
         .parse(input)
 }
 
@@ -106,6 +115,12 @@ struct DirectionIter<'a> {
     pos: usize,
 }
 
+impl<'a> DirectionIter<'a> {
+    pub fn pos(&self) -> usize {
+        self.pos
+    }
+}
+
 impl<'a> Iterator for DirectionIter<'a> {
     type Item = Direction;
 
@@ -126,6 +141,72 @@ struct Map<'a> {
     map: HashMap<Location<'a>, (Location<'a>, Location<'a>)>,
 }
 
+/// A ghost:
+///   - Is always on a "stop"
+///   - Has a position in time
+///   - can always move to the next stop (generally fast amortized time)
+#[derive(Debug, PartialEq)]
+struct Ghost<'a> {
+    time: usize,                                             // current position in time
+    position: &'a Location<'a>,                                  // a STOP position in time
+    next_stop: HashMap<FillKey<'a>, (usize, &'a Location<'a>)>, // how many steps to move to the next stop
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct FillKey<'a>(usize, &'a Location<'a>);
+
+impl<'a> Ghost<'a> {
+    fn new(start: &'a Location<'a>, map: &'a Map<'a>) -> Ghost<'a> {
+        // figure out the path of this ghost completely
+        assert!(start.is_ghost_start());
+        let mut position = start;
+        let mut time = 0;
+
+        let mut moves = map.directions.iter();
+
+        while !position.is_ghost_end() {
+            position = match moves.next().expect("Moves never end") {
+                Direction::Left => &map.map.get(&position).unwrap().0,
+                Direction::Right => &map.map.get(&position).unwrap().1,
+            };
+            time = time + 1;
+        }
+
+        // we have a start position. Now figure out all ends
+        let position = position;
+        let mut next_stop = HashMap::new();
+
+        let mut fill = position;
+        let mut fill_pos = FillKey(moves.pos, fill);
+        while !next_stop.contains_key(&fill_pos) {
+            // given the current pos, find out how many steps left
+            let mut steps = 0 as usize;
+            loop {
+                steps += 1;
+                fill = match moves.next().expect("Moves never end") {
+                    Direction::Left => &map.map.get(fill).unwrap().0,
+                    Direction::Right => &map.map.get(fill).unwrap().1,
+                };
+                eprintln!("{:?}", fill);
+
+                if fill.is_ghost_end() {
+                    break;
+                }
+            }
+            eprintln!("{:?} -> {:?}", fill_pos, (steps, fill));
+            next_stop.insert(fill_pos, (steps, fill));
+            // figure out from where we have to move
+            fill_pos = FillKey(moves.pos, fill);
+        }
+
+        Ghost {
+            time,
+            position,
+            next_stop,
+        }
+    }
+}
+
 impl<'a> Into<Map<'a>> for InputData<'a> {
     fn into(self) -> Map<'a> {
         let mut map = HashMap::new();
@@ -144,8 +225,8 @@ impl<'a> Into<Map<'a>> for InputData<'a> {
 
 pub fn part1_steps(input: &str) -> usize {
     let map: Map = parse_input(input).expect("valid input").1.into();
-    let target = Location("ZZZ");
-    let mut position = &Location("AAA");
+    let target = Location::new("ZZZ");
+    let mut position = &Location::new("AAA");
 
     for (i, d) in map.directions.iter().enumerate() {
         position = match d {
@@ -163,13 +244,20 @@ pub fn part1_steps(input: &str) -> usize {
 
 pub fn part2_steps(input: &str) -> usize {
     let map: Map = parse_input(input).expect("valid input").1.into();
-
+    
     let mut ghost_positions = map
         .map
         .keys()
         .filter(|k| k.is_ghost_start())
         .collect::<HashSet<_>>();
+    
+    let mut ghosts = ghost_positions.iter().map(|p| 
+                                                Ghost::new(&p, &map)
+    ).collect::<Vec<_>>();
 
+    eprintln!("GHOSTS: {:#?}", ghosts);
+
+    /*
     for (i, d) in map.directions.iter().enumerate() {
         // move all ghost positions
         ghost_positions = ghost_positions
@@ -183,7 +271,8 @@ pub fn part2_steps(input: &str) -> usize {
         if ghost_positions.iter().all(|p| p.is_ghost_end()) {
             return i + 1;
         }
-    }
+    }*/
+    
 
     panic!("should never finish")
 }
@@ -235,14 +324,14 @@ mod tests {
                 directions: vec![Direction::Right, Direction::Left, Direction::Right,],
                 map_list: vec![
                     LocationMap {
-                        key: Location("AAA"),
-                        left: Location("BBB"),
-                        right: Location("CCC")
+                        key: Location::new("AAA"),
+                        left: Location::new("BBB"),
+                        right: Location::new("CCC")
                     },
                     LocationMap {
-                        key: Location("BBB"),
-                        left: Location("DDD"),
-                        right: Location("EEE")
+                        key: Location::new("BBB"),
+                        left: Location::new("DDD"),
+                        right: Location::new("EEE")
                     }
                 ]
             }
@@ -269,9 +358,9 @@ mod tests {
         assert_eq!(
             parse_location_map("AAA = (BBB, CCC)").expect("ok").1,
             LocationMap {
-                key: Location("AAA"),
-                left: Location("BBB"),
-                right: Location("CCC")
+                key: Location::new("AAA"),
+                left: Location::new("BBB"),
+                right: Location::new("CCC")
             }
         );
     }
