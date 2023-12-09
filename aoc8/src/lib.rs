@@ -1,15 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::{
-        complete::{multispace1, one_of},
-        is_alphabetic,
+        complete::{multispace1, multispace0, none_of},
     },
     combinator::{recognize, value},
-    multi::{many1, many_m_n, separated_list1},
-    sequence::{pair, tuple},
+    multi::{many1, many_m_n},
+    sequence::{tuple},
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
@@ -33,7 +32,7 @@ fn parse_direction_list(input: &str) -> IResult<&str, Vec<Direction>> {
 struct Location<'a>(&'a str);
 
 fn parse_location(input: &str) -> IResult<&str, Location> {
-    recognize(many_m_n(3, 3, one_of("ABCDEFGHIJKLMNOPQRST")))
+    recognize(many_m_n(3, 3, none_of("=(), \n")))
         .map(|s| Location(s))
         .parse(input)
 }
@@ -62,15 +61,19 @@ struct InputData<'a> {
 }
 
 fn parse_input(input: &str) -> IResult<&str, InputData> {
-    tuple((
+    let (span, result) = tuple((
         parse_direction_list.terminated(multispace1),
-        separated_list1(multispace1, parse_location_map),
+        many1(parse_location_map.terminated(multispace0)),
     ))
     .map(|(directions, map_list)| InputData {
         directions,
         map_list,
     })
-    .parse(input)
+    .parse(input)?;
+    
+    assert_eq!(span, "");
+
+    return Ok((span, result))
 }
 
 struct DirectionLoop {
@@ -127,9 +130,38 @@ impl<'a> Into<Map<'a>> for InputData<'a> {
     }
 }
 
+pub fn part1_steps(input: &str) -> usize {
+    let map: Map = parse_input(input).expect("valid input").1.into();
+    let target = Location("ZZZ");
+    let mut position = &Location("AAA");
+
+    eprintln!("   MAP: {:#?}",map.map);
+    
+    for (i, d) in map.directions.iter().enumerate() {
+
+        eprintln!("POSITION: {}, {:?} to {:?}",i, position, d);
+        eprintln!("   MAP: {:?}",map.map.get(&position));
+        position = match d {
+            Direction::Left => &map.map.get(&position).expect("valid").0,
+            Direction::Right => &map.map.get(&position).expect("valid").1,
+        };
+
+        if *position == target {
+            return i+1;
+        }
+    }
+    
+    panic!("should never finish")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1_steps(include_str!("../example.txt")), 6);
+    }
 
     #[test]
     fn test_direction_loop_iterate() {
@@ -157,7 +189,7 @@ mod tests {
     #[test]
     fn test_parse_input() {
         assert_eq!(
-            parse_input("RLR\nAAA = (BBB, CCC)\nBBB = (DDD, EEE)")
+            parse_input("RLR\n\nAAA = (BBB, CCC)\nBBB = (DDD, EEE)")
                 .expect("ok")
                 .1,
             InputData {
