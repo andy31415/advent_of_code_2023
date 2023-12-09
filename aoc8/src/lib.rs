@@ -135,12 +135,7 @@ pub fn part1_steps(input: &str) -> usize {
     let target = Location("ZZZ");
     let mut position = &Location("AAA");
 
-    eprintln!("   MAP: {:#?}",map.map);
-    
     for (i, d) in map.directions.iter().enumerate() {
-
-        eprintln!("POSITION: {}, {:?} to {:?}",i, position, d);
-        eprintln!("   MAP: {:?}",map.map.get(&position));
         position = match d {
             Direction::Left => &map.map.get(&position).expect("valid").0,
             Direction::Right => &map.map.get(&position).expect("valid").1,
