@@ -19,8 +19,7 @@ fn parse_sequence(input: &str) -> IResult<&str, Sequence> {
 }
 
 impl Sequence {
-    pub fn next_tower_sum(&self) -> i64 {
-        // Computes the next value in a tower...
+    pub fn towers(&self) -> Vec<Vec<i64>> {
         let mut towers = Vec::new();
 
         let mut values = self.values.clone();
@@ -32,11 +31,23 @@ impl Sequence {
                 .map(|(a, b)| b - a)
                 .collect();
         }
-
         towers
+    }
+
+    pub fn next_tower_sum(&self) -> i64 {
+        // Computes the next value in a tower...
+        self.towers()
             .iter()
             .rev()
             .fold(0, |acc, x| acc + x.last().expect("non-empty"))
+    }
+
+    pub fn previous_tower_sum(&self) -> i64 {
+        // Computes the next value in a tower...
+        self.towers()
+            .iter()
+            .rev()
+            .fold(0, |acc, x| x.first().expect("non-empty") - acc)
     }
 }
 
@@ -138,6 +149,13 @@ pub fn part1(input: &str) -> i64 {
     input.sequences.iter().map(|s| s.next_tower_sum()).sum()
 }
 
+pub fn part2(input: &str) -> i64 {
+    let (rest, input) = parse_input(input).expect("Valid input");
+    assert_eq!(rest, "");
+
+    input.sequences.iter().map(|s| s.previous_tower_sum()).sum()
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -180,6 +198,14 @@ mod tests {
         assert_eq!(
             part1("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"),
             114
+        );
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(
+            part2("0 3 6 9 12 15\n1 3 6 10 15 21\n10 13 16 21 30 45"),
+            2
         );
     }
 
