@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use nom::{
     character::complete::{self, newline, space1},
     multi::separated_list1,
@@ -22,9 +23,8 @@ impl Sequence {
         let mut values = self.values.clone();
         while !values.iter().all(|v| *v == 0) {
             towers.push(values.clone());
-            values = values
-                .iter()
-                .zip(values.iter().skip(1))
+            values = values.iter()
+                .tuple_windows()
                 .map(|(a, b)| b - a)
                 .collect();
         }
