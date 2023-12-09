@@ -1,14 +1,12 @@
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::{
-        complete::{multispace1, multispace0, none_of},
-    },
+    character::complete::{multispace0, multispace1, none_of},
     combinator::{recognize, value},
     multi::{many1, many_m_n},
-    sequence::{tuple},
+    sequence::tuple,
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
@@ -70,10 +68,10 @@ fn parse_input(input: &str) -> IResult<&str, InputData> {
         map_list,
     })
     .parse(input)?;
-    
+
     assert_eq!(span, "");
 
-    return Ok((span, result))
+    return Ok((span, result));
 }
 
 struct DirectionLoop {
@@ -142,10 +140,10 @@ pub fn part1_steps(input: &str) -> usize {
         };
 
         if *position == target {
-            return i+1;
+            return i + 1;
         }
     }
-    
+
     panic!("should never finish")
 }
 
