@@ -1,4 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::{Debug, Write},
+};
 
 use nom::{
     branch::alt,
@@ -8,6 +11,7 @@ use nom::{
     multi::{many1, separated_list1},
     IResult, Parser,
 };
+use tracing::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Hash)]
 enum Direction {
@@ -25,6 +29,38 @@ enum MapPoint {
 }
 
 impl MapPoint {
+    fn graphic_char(&self) -> char {
+        match self {
+            MapPoint::Ground => '.',
+            MapPoint::Start => 'S',
+            x => {
+                if x.has_connection(Direction::Left) {
+                    if x.has_connection(Direction::Right) {
+                        '─'
+                    } else if x.has_connection(Direction::Up) {
+                        '┘'
+                    } else if x.has_connection(Direction::Down) {
+                        '┐'
+                    } else {
+                        '?'
+                    }
+                } else if x.has_connection(Direction::Right) {
+                    if x.has_connection(Direction::Up) {
+                        '└'
+                    } else if x.has_connection(Direction::Down) {
+                        '┌'
+                    } else {
+                        '?'
+                    }
+                } else if x.has_connection(Direction::Up) && x.has_connection(Direction::Down) {
+                    '│'
+                } else {
+                    '?'
+                }
+            }
+        }
+    }
+
     fn left_of(&self, other: MapPoint) -> bool {
         self.has_connection(Direction::Right) && other.has_connection(Direction::Left)
     }
@@ -50,8 +86,19 @@ impl MapPoint {
     }
 }
 
+#[derive(PartialEq, PartialOrd, Clone)]
 struct Line {
     points: Vec<MapPoint>,
+}
+
+impl Debug for Line {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("L[")?;
+        for x in self.points.iter() {
+            f.write_char(x.graphic_char())?;
+        }
+        f.write_str("]")
+    }
 }
 
 fn parse_line(input: &str) -> IResult<&str, Line> {
@@ -75,9 +122,21 @@ struct Point {
     col: usize,
 }
 
+#[derive(PartialEq, PartialOrd, Clone)]
 struct Map {
     lines: Vec<Line>,
 }
+
+impl Debug for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MAP: {\n")?;
+        for l in self.lines.iter() {
+            f.write_fmt(format_args!("  {:?}\n", l))?;
+        }
+        f.write_str("}\n")
+    }
+}
+
 
 impl Map {
     fn at(&self, p: Point) -> Option<MapPoint> {
@@ -213,6 +272,57 @@ impl Map {
         }
         processed
     }
+
+    #[tracing::instrument(skip(self))]
+    pub fn inside_outside(&self) -> u32 {
+        // only things in the main loop will be relevant
+        let distances = self.distances();
+
+        self.lines
+            .iter()
+            .enumerate()
+            .map(|(row, line)| {
+                // logic:
+                //   paritition scan for lines:
+                //   odd up/down we are inside, even up/down we are outside
+                let mut up_count = 0;
+                let mut down_count = 0;
+                let mut inside = 0u32;
+
+                debug!("Checking line {:?}", line );
+
+                for (col, p) in line.points.iter().enumerate() {
+                    if distances.contains_key(&Point { row, col }) {
+                        debug!("Contains: {},{}", row, col);
+                        if *p == MapPoint::Start {
+                            debug!("   DEBUG start point: {},{}", row, col);
+                            // FIXME: now what? Figure out where to start
+                            for n in self.neighbours(Point{row,col}) {
+                                if self.at(n).expect("ok").above(*p) {
+                                   debug!("    ABOVE");
+                                   up_count += 1;
+                                }
+                                if self.at(n).expect("ok").below(*p) {
+                                   debug!("    BELOW");
+                                    down_count += 1;
+                                }
+                            }
+                        } else if p.has_connection(Direction::Down) {
+                            down_count += 1;
+                        }
+                        if p.has_connection(Direction::Up) {
+                            up_count += 1;
+                        }
+                    } else if (up_count % 2 == 1) || (down_count % 2 == 1) {
+                        debug!("Add inside: {},{}", row, col);
+                        inside += 1;
+                    }
+                }
+                debug!("  Inside: {}", inside);
+                inside
+            })
+            .sum()
+    }
 }
 
 fn parse_map(input: &str) -> IResult<&str, Map> {
@@ -239,9 +349,7 @@ pub fn part2(input: &str) -> u32 {
     let (r, map) = parse_map(input).expect("valid input");
     assert_eq!(r, "");
 
-    let _distances = map.distances();
-
-    todo!();
+    map.inside_outside()
 }
 
 #[cfg(test)]
@@ -254,7 +362,7 @@ mod tests {
         assert_eq!(part1(include_str!("../example2.txt")), 8);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part2() {
         assert_eq!(part2(include_str!("../example_inside_outside_1.txt")), 4);
         assert_eq!(part2(include_str!("../example_inside_outside_2.txt")), 8);
