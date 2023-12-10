@@ -235,6 +235,10 @@ pub fn part1(input: &str) -> u32 {
         .expect("some data")
 }
 
+pub fn part2(input: &str) -> u32 {
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +247,12 @@ mod tests {
     fn test_part1() {
         assert_eq!(part1(include_str!("../example1.txt")), 4);
         assert_eq!(part1(include_str!("../example2.txt")), 8);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(include_str!("../example_inside_outside_1.txt")), 4);
+        assert_eq!(part2(include_str!("../example_inside_outside_2.txt")), 8);
+        assert_eq!(part2(include_str!("../example_inside_outside_3.txt")), 10);
     }
 }
