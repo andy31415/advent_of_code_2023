@@ -46,6 +46,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc10"
+version = "0.1.0"
+dependencies = [
+ "dhat",
+ "divan",
+ "itertools 0.10.5",
+ "nom",
+ "nom-supreme",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "aoc2"
 version = "0.1.0"
 dependencies = [
