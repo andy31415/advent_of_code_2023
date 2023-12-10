@@ -236,7 +236,12 @@ pub fn part1(input: &str) -> u32 {
 }
 
 pub fn part2(input: &str) -> u32 {
-    0
+    let (r, map) = parse_map(input).expect("valid input");
+    assert_eq!(r, "");
+
+    let _distances = map.distances();
+
+    todo!();
 }
 
 #[cfg(test)]
