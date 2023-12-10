@@ -137,7 +137,6 @@ impl Debug for Map {
     }
 }
 
-
 impl Map {
     fn at(&self, p: Point) -> Option<MapPoint> {
         self.lines.get(p.row)?.points.get(p.col).copied()
@@ -260,10 +259,10 @@ impl Map {
             if processed.contains_key(&point) {
                 continue;
             }
-            tracing::info!("Processing {:?} value {}", point, value);
+            tracing::debug!("Processing {:?} value {}", point, value);
 
             for n in self.neighbours(point) {
-                tracing::info!("  => Neighbor {:?}", n);
+                tracing::debug!("  => Neighbor {:?}", n);
 
                 processing.push_back((n, value + 1));
             }
@@ -271,6 +270,31 @@ impl Map {
             processed.insert(point, value);
         }
         processed
+    }
+
+    fn as_loop_only(&self) -> Map {
+        let distances = self.distances();
+
+        Map {
+            lines: self
+                .lines
+                .iter()
+                .enumerate()
+                .map(|(row, line)| Line {
+                    points: line.points
+                        .iter()
+                        .enumerate()
+                        .map(|(col, p)| {
+                            if distances.contains_key(&Point { row, col }) {
+                                *p
+                            } else {
+                                MapPoint::Ground
+                            }
+                        })
+                        .collect(),
+                })
+                .collect(),
+        }
     }
 
     #[tracing::instrument(skip(self))]
@@ -289,7 +313,7 @@ impl Map {
                 let mut down_count = 0;
                 let mut inside = 0u32;
 
-                debug!("Checking line {:?}", line );
+                debug!("Checking line {:?}", line);
 
                 for (col, p) in line.points.iter().enumerate() {
                     if distances.contains_key(&Point { row, col }) {
@@ -297,13 +321,13 @@ impl Map {
                         if *p == MapPoint::Start {
                             debug!("   DEBUG start point: {},{}", row, col);
                             // FIXME: now what? Figure out where to start
-                            for n in self.neighbours(Point{row,col}) {
+                            for n in self.neighbours(Point { row, col }) {
                                 if self.at(n).expect("ok").above(*p) {
-                                   debug!("    ABOVE");
-                                   up_count += 1;
+                                    debug!("    ABOVE");
+                                    up_count += 1;
                                 }
                                 if self.at(n).expect("ok").below(*p) {
-                                   debug!("    BELOW");
+                                    debug!("    BELOW");
                                     down_count += 1;
                                 }
                             }
@@ -348,6 +372,10 @@ pub fn part1(input: &str) -> u32 {
 pub fn part2(input: &str) -> u32 {
     let (r, map) = parse_map(input).expect("valid input");
     assert_eq!(r, "");
+
+    let map = map.as_loop_only();
+
+    tracing::info!("{:?}", &map);
 
     map.inside_outside()
 }
