@@ -230,7 +230,6 @@ pub fn part1(input: &str) -> u32 {
     distances
         .iter()
         .filter(|(k, _)| map.in_loop(**k))
-        .inspect(|x| {dbg!(&x);})
         .map(|(_, v)| *v)
         .max()
         .expect("some data")
