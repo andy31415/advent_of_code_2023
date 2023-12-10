@@ -281,7 +281,8 @@ impl Map {
                 .iter()
                 .enumerate()
                 .map(|(row, line)| Line {
-                    points: line.points
+                    points: line
+                        .points
                         .iter()
                         .enumerate()
                         .map(|(col, p)| {
@@ -302,21 +303,25 @@ impl Map {
         // only things in the main loop will be relevant
         let distances = self.distances();
 
-        self.lines
+        let mut displayable = String::new();
+
+        let total = self
+            .lines
             .iter()
             .enumerate()
             .map(|(row, line)| {
                 // logic:
                 //   paritition scan for lines:
                 //   odd up/down we are inside, even up/down we are outside
-                let mut up_count = 0;
-                let mut down_count = 0;
+                let mut up = false;
+                let mut down = false;
                 let mut inside = 0u32;
 
                 debug!("Checking line {:?}", line);
 
                 for (col, p) in line.points.iter().enumerate() {
                     if distances.contains_key(&Point { row, col }) {
+                        displayable.push(p.graphic_char());
                         debug!("Contains: {},{}", row, col);
                         if *p == MapPoint::Start {
                             debug!("   DEBUG start point: {},{}", row, col);
@@ -324,28 +329,42 @@ impl Map {
                             for n in self.neighbours(Point { row, col }) {
                                 if self.at(n).expect("ok").above(*p) {
                                     debug!("    ABOVE");
-                                    up_count += 1;
+                                    up = !up;
                                 }
                                 if self.at(n).expect("ok").below(*p) {
                                     debug!("    BELOW");
-                                    down_count += 1;
+                                    down = !down;
                                 }
                             }
-                        } else if p.has_connection(Direction::Down) {
-                            down_count += 1;
+                        } else {
+                            if p.has_connection(Direction::Down) {
+                                down = !down;
+                            }
+                            if p.has_connection(Direction::Up) {
+                                up = !up;
+                            }
                         }
-                        if p.has_connection(Direction::Up) {
-                            up_count += 1;
-                        }
-                    } else if (up_count % 2 == 1) || (down_count % 2 == 1) {
+                    } else if up && down {
                         debug!("Add inside: {},{}", row, col);
                         inside += 1;
+                        displayable.push('.');
+                    } else {
+                        if up || down {
+                            displayable.push('*');
+                        } else {
+                            displayable.push(' ');
+                        }
                     }
                 }
+                displayable.push('\n');
                 debug!("  Inside: {}", inside);
                 inside
             })
-            .sum()
+            .sum();
+
+        tracing::info!("Traced:\n{}", displayable);
+
+        total
     }
 }
 
