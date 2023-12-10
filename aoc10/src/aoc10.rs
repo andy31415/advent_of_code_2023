@@ -15,7 +15,7 @@ fn main() {
 
     tracing_subscriber::registry()
         .with(
-            stdout_log.with_filter(LevelFilter::INFO),
+            stdout_log.with_filter(LevelFilter::WARN),
         )
         .init();
 

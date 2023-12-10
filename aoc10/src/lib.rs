@@ -303,8 +303,6 @@ impl Map {
         // only things in the main loop will be relevant
         let distances = self.distances();
 
-        let mut displayable = String::new();
-
         let total = self
             .lines
             .iter()
@@ -321,7 +319,6 @@ impl Map {
 
                 for (col, p) in line.points.iter().enumerate() {
                     if distances.contains_key(&Point { row, col }) {
-                        displayable.push(p.graphic_char());
                         debug!("Contains: {},{}", row, col);
                         if *p == MapPoint::Start {
                             debug!("   DEBUG start point: {},{}", row, col);
@@ -347,22 +344,12 @@ impl Map {
                     } else if up && down {
                         debug!("Add inside: {},{}", row, col);
                         inside += 1;
-                        displayable.push('.');
-                    } else {
-                        if up || down {
-                            displayable.push('*');
-                        } else {
-                            displayable.push(' ');
-                        }
-                    }
+                    } 
                 }
-                displayable.push('\n');
                 debug!("  Inside: {}", inside);
                 inside
             })
             .sum();
-
-        tracing::info!("Traced:\n{}", displayable);
 
         total
     }
