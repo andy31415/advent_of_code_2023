@@ -344,7 +344,7 @@ impl Map {
                     } else if up && down {
                         debug!("Add inside: {},{}", row, col);
                         inside += 1;
-                    } 
+                    }
                 }
                 debug!("  Inside: {}", inside);
                 inside

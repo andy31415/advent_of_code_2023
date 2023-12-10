@@ -14,9 +14,7 @@ fn main() {
     let stdout_log = tracing_subscriber::fmt::layer().pretty();
 
     tracing_subscriber::registry()
-        .with(
-            stdout_log.with_filter(LevelFilter::WARN),
-        )
+        .with(stdout_log.with_filter(LevelFilter::WARN))
         .init();
 
     let s1 = part1(include_str!("../input.txt"));
