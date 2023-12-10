@@ -1,6 +1,10 @@
 use nom::{
-    branch::alt, bytes::complete::tag, character::complete::line_ending, combinator::value,
-    multi::{many1, separated_list1}, IResult, Parser,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::line_ending,
+    combinator::value,
+    multi::{many1, separated_list1},
+    IResult, Parser,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -51,13 +55,13 @@ fn parse_map(input: &str) -> IResult<&str, Map> {
 pub fn part1(input: &str) -> u32 {
     let (r, map) = parse_map(input).expect("valid input");
     assert_eq!(r, "");
-   0
+    0
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example1.txt")), 4);
