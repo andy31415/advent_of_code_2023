@@ -16,8 +16,8 @@ type Span<'a> = LocatedSpan<&'a str>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub struct Position {
-    row: u32,
-    col: u32,
+    row: u64,
+    col: u64,
 }
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -35,7 +35,7 @@ impl Universe {
         }
     }
 
-    fn expand(&mut self, amount: u32) {
+    fn expand(&mut self, amount: u64) {
         // any row or column that has no galaxies gets expanded
         let max_row = self
             .galaxies
@@ -87,7 +87,7 @@ impl Universe {
         self.galaxies = BTreeSet::from_iter(new_galaxies.into_iter());
     }
 
-    pub fn all_distances(&self) -> u32 {
+    pub fn all_distances(&self) -> u64 {
         self.galaxies
             .iter()
             .combinations(2)
@@ -123,8 +123,8 @@ pub fn universe(span: Span) -> Universe {
             value(None, tag(".")),
             tag("#").map(|l: Span| {
                 Some(Position {
-                    row: l.location_line() - 1,
-                    col: (l.get_column() - 1) as u32,
+                    row: (l.location_line() - 1) as u64,
+                    col: (l.get_column() - 1) as u64,
                 })
             }),
         )))
@@ -143,17 +143,17 @@ pub fn universe(span: Span) -> Universe {
     universe
 }
 
-pub fn part_expand(input: &str, amount: u32) -> u32 {
+pub fn part_expand(input: &str, amount: u64) -> u64 {
     let mut u = universe(input.into());
     u.expand(amount);
     u.all_distances()
 }
 
-pub fn part1(input: &str) -> u32 {
+pub fn part1(input: &str) -> u64 {
     part_expand(input, 1)
 }
 
-pub fn part2(input: &str) -> u32 {
+pub fn part2(input: &str) -> u64 {
     part_expand(input, 1000000 - 1)
 }
 
