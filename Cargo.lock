@@ -71,6 +71,7 @@ dependencies = [
  "nom",
  "nom-supreme",
  "nom_locate",
+ "test-log",
  "tracing",
  "tracing-log",
  "tracing-subscriber",

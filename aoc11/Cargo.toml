@@ -28,6 +28,7 @@ nom-supreme = "0.8.0"
 glam.workspace = true
 nom_locate = "4.2.0"
 itertools.workspace = true
+test-log = "0.2.14"
 
 [dev-dependencies]
 itertools = {workspace=true}

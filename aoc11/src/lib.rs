@@ -11,6 +11,7 @@ use nom::{
 };
 use nom_locate::LocatedSpan;
 use nom_supreme::ParserExt;
+use tracing::{info, debug};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -56,6 +57,7 @@ impl Universe {
                 expand_rows.insert(row);
             }
         }
+        info!("Expanding rows: {:?}", &expand_rows);
 
         let mut expand_cols = BTreeSet::new();
         for col in 0..=max_col {
@@ -63,6 +65,7 @@ impl Universe {
                 expand_cols.insert(col);
             }
         }
+        info!("Expanding cols: {:?}", &expand_cols);
 
         let mut new_galaxies = self.galaxies.clone().into_iter().collect::<Vec<_>>();
 
@@ -106,7 +109,7 @@ impl Universe {
                     p1.col - p2.col
                 };
 
-                eprintln!("From {:?} to {:?} => {}", p1, p2, (dr + dc));
+                debug!("From {:?} to {:?} => {}", p1, p2, (dr + dc));
 
                 dr + dc
             })
@@ -178,7 +181,7 @@ mod tests {
         );
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 374);
     }
