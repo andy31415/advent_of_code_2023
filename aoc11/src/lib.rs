@@ -10,7 +10,7 @@ use nom::{
     Parser,
 };
 use nom_locate::LocatedSpan;
-use tracing::{debug, info, error};
+use tracing::{debug, info};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
@@ -154,7 +154,7 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet;
 
-    #[test]
+    #[test_log::test]
     fn test_expand() {
         let mut u = universe("..#\n...\n.#.".into());
         assert_eq!(
@@ -182,10 +182,11 @@ mod tests {
 
     #[test_log::test]
     fn test_part1() {
+        info!("Testing...");
         assert_eq!(part1(include_str!("../example.txt")), 374);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_parse() {
         assert_eq!(
             universe(include_str!("../example.txt").into()),
