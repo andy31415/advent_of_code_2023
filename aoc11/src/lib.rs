@@ -84,7 +84,7 @@ impl Universe {
             }
         }
 
-        self.galaxies = BTreeSet::from_iter(new_galaxies.into_iter());
+        self.galaxies = BTreeSet::from_iter(new_galaxies);
     }
 
     pub fn all_distances(&self) -> u64 {
@@ -130,7 +130,7 @@ pub fn universe(span: Span) -> Universe {
         )))
         .map(|data| {
             data.into_iter()
-                .filter_map(|x| x)
+                .flatten()
                 .collect::<Vec<Position>>()
         }),
     )
