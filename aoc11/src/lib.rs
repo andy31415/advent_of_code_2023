@@ -69,14 +69,14 @@ impl Universe {
         let mut new_galaxies = self.galaxies.clone().into_iter().collect::<Vec<_>>();
 
         // now move every galaxy as needed
-        for row in expand_rows.iter().rev() {
+        for row in expand_rows.iter().sorted().rev() {
             for g in new_galaxies.iter_mut() {
                 if g.row > *row {
                     g.row += amount;
                 }
             }
         }
-        for col in expand_cols.iter().rev() {
+        for col in expand_cols.iter().sorted().rev() {
             for g in new_galaxies.iter_mut() {
                 if g.col > *col {
                     g.col += amount;
@@ -154,7 +154,7 @@ pub fn part1(input: &str) -> u32 {
 }
 
 pub fn part2(input: &str) -> u32 {
-    part_expand(input, 1000000)
+    part_expand(input, 1000000-1)
 }
 
 #[cfg(test)]
@@ -196,8 +196,8 @@ mod tests {
 
     #[test_log::test]
     fn test_part2() {
-        assert_eq!(part_expand(include_str!("../example.txt"), 10), 1030);
-        assert_eq!(part_expand(include_str!("../example.txt"), 100), 8410);
+        assert_eq!(part_expand(include_str!("../example.txt"), 10-1), 1030);
+        assert_eq!(part_expand(include_str!("../example.txt"), 100-1), 8410);
     }
 
     #[test_log::test]
