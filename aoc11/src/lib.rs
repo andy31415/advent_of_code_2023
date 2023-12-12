@@ -35,7 +35,7 @@ impl Universe {
         }
     }
 
-    fn expand(&mut self) {
+    fn expand(&mut self, amount: u32) {
         // any row or column that has no galaxies gets expanded
         let max_row = self
             .galaxies
@@ -72,14 +72,14 @@ impl Universe {
         for row in expand_rows.iter().rev() {
             for g in new_galaxies.iter_mut() {
                 if g.row > *row {
-                    g.row += 1;
+                    g.row += amount;
                 }
             }
         }
         for col in expand_cols.iter().rev() {
             for g in new_galaxies.iter_mut() {
                 if g.col > *col {
-                    g.col += 1;
+                    g.col += amount;
                 }
             }
         }
@@ -143,10 +143,18 @@ pub fn universe(span: Span) -> Universe {
     universe
 }
 
-pub fn part1(input: &str) -> u32 {
+pub fn part_expand(input: &str, amount: u32) -> u32 {
     let mut u = universe(input.into());
-    u.expand();
+    u.expand(amount);
     u.all_distances()
+}
+
+pub fn part1(input: &str) -> u32 {
+    part_expand(input, 1)
+}
+
+pub fn part2(input: &str) -> u32 {
+    part_expand(input, 1000000)
 }
 
 #[cfg(test)]
@@ -167,7 +175,7 @@ mod tests {
             }
         );
 
-        u.expand();
+        u.expand(1);
 
         assert_eq!(
             u,
@@ -182,8 +190,14 @@ mod tests {
 
     #[test_log::test]
     fn test_part1() {
-        info!("Testing...");
         assert_eq!(part1(include_str!("../example.txt")), 374);
+    }
+
+
+    #[test_log::test]
+    fn test_part2() {
+        assert_eq!(part_expand(include_str!("../example.txt"), 10), 1030);
+        assert_eq!(part_expand(include_str!("../example.txt"), 100), 8410);
     }
 
     #[test_log::test]
