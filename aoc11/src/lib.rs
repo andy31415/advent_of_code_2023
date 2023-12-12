@@ -154,7 +154,7 @@ pub fn part1(input: &str) -> u32 {
 }
 
 pub fn part2(input: &str) -> u32 {
-    part_expand(input, 1000000-1)
+    part_expand(input, 1000000 - 1)
 }
 
 #[cfg(test)]
@@ -193,11 +193,10 @@ mod tests {
         assert_eq!(part1(include_str!("../example.txt")), 374);
     }
 
-
     #[test_log::test]
     fn test_part2() {
-        assert_eq!(part_expand(include_str!("../example.txt"), 10-1), 1030);
-        assert_eq!(part_expand(include_str!("../example.txt"), 100-1), 8410);
+        assert_eq!(part_expand(include_str!("../example.txt"), 10 - 1), 1030);
+        assert_eq!(part_expand(include_str!("../example.txt"), 100 - 1), 8410);
     }
 
     #[test_log::test]
