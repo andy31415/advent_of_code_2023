@@ -51,7 +51,7 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
  "test-log",
@@ -66,9 +66,11 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "glam",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
+ "nom_locate",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
@@ -227,6 +229,12 @@ name = "bumpalo"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f30e7476521f6f8af1a1c4c0b8cc94f0bee37d91763d0ca2665f299b6cd8aec"
+
+[[package]]
+name = "bytecount"
+version = "0.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1e5f035d16fc623ae5f74981db80a439803888314e3a555fd6f04acd51a3205"
 
 [[package]]
 name = "cast"
@@ -543,6 +551,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
 
 [[package]]
+name = "glam"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5418c17512bdf42730f9032c74e1ae39afc408745ebb2acf72fbc4691c17945"
+
+[[package]]
 name = "glob"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,6 +732,17 @@ dependencies = [
  "brownstone",
  "indent_write",
  "joinery",
+ "memchr",
+ "nom",
+]
+
+[[package]]
+name = "nom_locate"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e3c83c053b0713da60c5b8de47fe8e494fe3ece5267b2f23090a07a053ba8f3"
+dependencies = [
+ "bytecount",
  "memchr",
  "nom",
 ]
