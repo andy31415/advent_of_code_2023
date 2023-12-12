@@ -4,14 +4,13 @@ use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{line_ending, multispace1},
+    character::complete::multispace1,
     combinator::value,
     multi::{many1, separated_list1},
-    IResult, Parser,
+    Parser,
 };
 use nom_locate::LocatedSpan;
-use nom_supreme::ParserExt;
-use tracing::{info, debug};
+use tracing::{debug, info, error};
 
 type Span<'a> = LocatedSpan<&'a str>;
 
