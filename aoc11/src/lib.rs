@@ -69,16 +69,16 @@ impl Universe {
         let mut new_galaxies = self.galaxies.clone().into_iter().collect::<Vec<_>>();
 
         // now move every galaxy as needed
-        for row in expand_rows {
+        for row in expand_rows.iter().rev() {
             for g in new_galaxies.iter_mut() {
-                if g.row > row {
+                if g.row > *row {
                     g.row += 1;
                 }
             }
         }
-        for col in expand_cols {
+        for col in expand_cols.iter().rev() {
             for g in new_galaxies.iter_mut() {
-                if g.col > col {
+                if g.col > *col {
                     g.col += 1;
                 }
             }
