@@ -43,85 +43,84 @@ pub struct SpringLine {
     runs: Vec<u32>,
 }
 
-fn match_possibilities(
-    states: &[SpringState],
-    current_run: u32,
-    rest_of_runs: &[u32],
-    depth: usize,
-) -> u32 {
-    // current run: what errors we MUST finish
-    trace!("{:indent$}IN:   {:?} {:?},{:?}","", states, current_run, rest_of_runs, indent=depth*2);
-    if current_run > 0 {
-        if current_run == 1 {
-            // MUST be a valid state AND have a separator
-            return match states {
-                [] => 0, // empty is invalid
-                [SpringState::Damaged | SpringState::Unknown] => {
-                    if rest_of_runs == [] {
-                        1
-                    } else {
-                        0
-                    }
-                }
-                [SpringState::Operational, ..] => 0, // not a valid stop
-                [SpringState::Damaged | SpringState::Unknown, SpringState::Operational | SpringState::Unknown, rest @ ..] =>
-                {
-                    let mut total = match_possibilities(rest, 0, rest_of_runs, depth + 1);
-
-                    if let [first, tail @ ..] = rest_of_runs {
-                        total += match_possibilities(rest, *first, tail, depth + 1);
-                    }
-                    total
-                }
-                [_, SpringState::Damaged, ..] => 0, // not a valid end of run
-            };
-        }
-
-        return match states {
-            [] => 0,                             // empty,
-            [SpringState::Operational, ..] => 0, // not a valid stop
-            [_, rest @ ..] => match_possibilities(rest, current_run - 1, rest_of_runs, depth + 1),
-        };
+fn consume_damage(input: &[SpringState], amount: usize) -> Option<&[SpringState]> {
+    // try to consume these many damaged states from the input
+    // return None on failure
+    if input.len() < amount {
+        return None;
     }
 
-    // current run is 0. figure out if we must start a run or not
-    return match states {
-        [] => {
-            if rest_of_runs == [] {
-                1
+    let (left, right) = input.split_at(amount);
+
+    if left.iter().any(|s| *s == SpringState::Operational) {
+        // insufficient run
+        return None;
+    }
+
+    match right {
+        [] => Some(&[]), // run ends at end of array
+        [first, rest @ ..] => {
+            if *first == SpringState::Damaged {
+                None // Not an end of the run
             } else {
-                0
+                Some(rest)
             }
         }
-        [first, rest @ ..] => {
-            // Choice: start a new run or not
-            let mut total = 0;
-            if *first == SpringState::Operational || *first == SpringState::Unknown {
-                total += match_possibilities(rest, current_run, rest_of_runs, depth + 1)
-            }
-            if *first == SpringState::Damaged || *first == SpringState::Unknown {
-                match rest_of_runs {
-                    [] => (),
-                    [run, tail @ ..] => total += match_possibilities(states, *run, tail, depth + 1),
-                }
-            }
+    }
+}
+
+fn match_possibilities(states: &[SpringState], runs: &[u32], depth: usize) -> u32 {
+    trace!(
+        "{:indent$} IN {:?}/{:?}",
+        "",
+        states,
+        runs,
+        indent = depth * 2
+    );
+    match runs {
+        [] => {
+            let total = if states.iter().any(|s| *s == SpringState::Damaged) {
+                0
+            } else {
+                1
+            };
+            trace!(
+                "{:indent$} OUT {:?}/{:?} => {} (final)",
+                "",
+                states,
+                runs,
+                total,
+                indent = depth * 2
+            );
             total
         }
-    };
+        [first, tail_runs @ ..] => {
+            let mut total = 0;
+
+            // try to consume damage now
+            if let Some(tail_states) = consume_damage(states, *first as usize) {
+                trace!("{:indent$} CONSUMED {}", "", *first, indent = depth * 2);
+                total += match_possibilities(tail_states, tail_runs, depth + 1)
+            }
+
+            // if current state is not damage, try to also recurse without consuming damage yet
+            match states {
+                [] => (),                        // non-empty runs, no match
+                [SpringState::Damaged, ..] => (), // damage, must be in a run
+                [_, tail_states @ ..] => {
+                    trace!("{:indent$} SKIP operational", "", indent = depth * 2);
+                    total += match_possibilities(tail_states, runs, depth + 1);
+                },
+            }
+
+            total
+        }
+    }
 }
 
 impl SpringLine {
     fn possibilities(&self) -> u32 {
-        match self.runs.as_slice() {
-            [] => {
-                if self.states.iter().any(|s| *s == SpringState::Damaged) {
-                    0
-                } else {
-                    1
-                }
-            }
-            [start, tail @ ..] => match_possibilities(self.states.as_slice(), *start, tail, 0),
-        }
+        match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
     }
 }
 
@@ -156,6 +155,45 @@ pub fn part1(i: &str) -> u32 {
 mod tests {
     use super::*;
 
+    fn spring_line_items(s: &str) -> Vec<SpringState> {
+        let (s, r) = many1(spring_state)(s).expect("valid input");
+        assert_eq!(s, "");
+
+        r
+    }
+
+    #[test]
+    fn test_consume_damage() {
+        assert_eq!(
+            consume_damage(spring_line_items("???.###").as_slice(), 3),
+            Some(spring_line_items("###").as_slice())
+        );
+        assert_eq!(
+            consume_damage(spring_line_items("???.###").as_slice(), 1),
+            Some(spring_line_items("?.###").as_slice())
+        );
+        assert_eq!(
+            consume_damage(spring_line_items("???.###").as_slice(), 2),
+            Some(spring_line_items(".###").as_slice())
+        );
+        assert_eq!(
+            consume_damage(spring_line_items("?#?.###").as_slice(), 2),
+            Some(spring_line_items(".###").as_slice())
+        );
+        assert_eq!(
+            consume_damage(spring_line_items(".??.###").as_slice(), 1),
+            None
+        );
+        assert_eq!(
+            consume_damage(spring_line_items("#.?.###").as_slice(), 2),
+            None
+        );
+        assert_eq!(
+            consume_damage(spring_line_items("###.###").as_slice(), 3),
+            Some(spring_line_items("###").as_slice())
+        );
+    }
+
     #[test_log::test]
     fn test_runs_simple() {
         assert_eq!(
@@ -170,8 +208,11 @@ mod tests {
     #[test_log::test]
     fn test_runs_debug_cases() {
         assert_eq!(
-            spring_line("???.# 2,1").expect("valid").1.possibilities(),
-            2
+            spring_line("?###???????? 3,2,1")
+                .expect("valid")
+                .1
+                .possibilities(),
+            10
         );
     }
 
@@ -204,6 +245,14 @@ mod tests {
                 .1
                 .possibilities(),
             4
+        );
+        assert_eq!(spring_line("???? 1").expect("valid").1.possibilities(), 4);
+        assert_eq!(spring_line("??? 1").expect("valid").1.possibilities(), 3);
+        assert_eq!(spring_line("?? 1").expect("valid").1.possibilities(), 2);
+        assert_eq!(spring_line("? 1").expect("valid").1.possibilities(), 1);
+        assert_eq!(
+            spring_line("??????? 2,1").expect("valid").1.possibilities(),
+            10
         );
         assert_eq!(
             spring_line("?###???????? 3,2,1")
