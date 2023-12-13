@@ -105,12 +105,12 @@ fn match_possibilities(states: &[SpringState], runs: &[u32], depth: usize) -> u3
 
             // if current state is not damage, try to also recurse without consuming damage yet
             match states {
-                [] => (),                        // non-empty runs, no match
+                [] => (),                         // non-empty runs, no match
                 [SpringState::Damaged, ..] => (), // damage, must be in a run
                 [_, tail_states @ ..] => {
                     trace!("{:indent$} SKIP operational", "", indent = depth * 2);
                     total += match_possibilities(tail_states, runs, depth + 1);
-                },
+                }
             }
 
             total
