@@ -264,6 +264,11 @@ mod tests {
     }
 
     #[test]
+    fn test_part1() {
+        assert_eq!(part1(include_str!("../example.txt")), 21);
+    }
+
+    #[test]
     fn test_input() {
         let (r, d) = parse_input(include_str!("../example.txt")).expect("valid");
         assert_eq!(r, "");
