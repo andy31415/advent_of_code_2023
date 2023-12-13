@@ -124,7 +124,7 @@ impl MatchMemoization {
 
 impl SpringLine {
     fn possibilities(&self) -> u64 {
-        MatchMemoization::new().match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
+        MatchMemoization::new().match_possibilities(self.states.as_slice(), self.runs.as_slice())
     }
 
     fn unfold(self) -> Self {
