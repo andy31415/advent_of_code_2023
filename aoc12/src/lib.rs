@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap},
-    fmt::{Write},
-};
+use std::{collections::BTreeMap, fmt::Write};
 
 use nom::{
     branch::alt,
@@ -12,7 +9,6 @@ use nom::{
     sequence::separated_pair,
     IResult, Parser,
 };
-
 
 #[derive(Ord, PartialOrd, PartialEq, Eq, Copy, Clone)]
 pub enum SpringState {
