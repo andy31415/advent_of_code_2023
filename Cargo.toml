@@ -21,7 +21,7 @@ tracing-tracy = "*"
 tracy-client = "*"
 tracy-client-sys = "*"
 itertools = "*"
-test-log = {version = "*", features=["trace"]}
+test-log = {version = "0.2.14", features=["log", "trace"]}
 
 [profile.release]
 debug = 1
