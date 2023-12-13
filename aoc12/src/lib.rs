@@ -40,7 +40,7 @@ fn spring_state(input: &str) -> IResult<&str, SpringState> {
 #[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct SpringLine {
     states: Vec<SpringState>,
-    runs: Vec<u32>,
+    runs: Vec<u64>,
 }
 
 fn consume_damage(input: &[SpringState], amount: usize) -> Option<&[SpringState]> {
@@ -69,7 +69,7 @@ fn consume_damage(input: &[SpringState], amount: usize) -> Option<&[SpringState]
     }
 }
 
-fn match_possibilities(states: &[SpringState], runs: &[u32], depth: usize) -> u32 {
+fn match_possibilities(states: &[SpringState], runs: &[u64], depth: usize) -> u64 {
     trace!(
         "{:indent$} IN {:?}/{:?}",
         "",
@@ -119,7 +119,7 @@ fn match_possibilities(states: &[SpringState], runs: &[u32], depth: usize) -> u3
 }
 
 impl SpringLine {
-    fn possibilities(&self) -> u32 {
+    fn possibilities(&self) -> u64 {
         match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
     }
 
@@ -143,7 +143,7 @@ fn spring_line(input: &str) -> IResult<&str, SpringLine> {
     separated_pair(
         many1(spring_state),
         space1,
-        separated_list1(tag(","), nom::character::complete::u32),
+        separated_list1(tag(","), nom::character::complete::u64),
     )
     .map(|(states, runs)| SpringLine { states, runs })
     .parse(input)
@@ -168,14 +168,14 @@ fn parse_input(i: &str) -> IResult<&str, Input> {
         .parse(i)
 }
 
-pub fn part1(i: &str) -> u32 {
+pub fn part1(i: &str) -> u64 {
     let (r, d) = parse_input(i).expect("valid input");
     assert_eq!(r, "");
 
     d.lines.iter().map(|l| l.possibilities()).sum()
 }
 
-pub fn part2(i: &str) -> u32 {
+pub fn part2(i: &str) -> u64 {
     let (r, d) = parse_input(i).expect("valid input");
     assert_eq!(r, "");
 
