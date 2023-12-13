@@ -84,6 +84,8 @@ dependencies = [
  "dhat",
  "divan",
  "itertools 0.10.5",
+ "nom",
+ "nom-supreme",
  "test-log",
  "tracing",
  "tracing-subscriber",
