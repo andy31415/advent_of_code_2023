@@ -1,4 +1,7 @@
-use std::fmt::{Display, Write};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::{Display, Write},
+};
 
 use nom::{
     branch::alt,
@@ -69,58 +72,59 @@ fn consume_damage(input: &[SpringState], amount: usize) -> Option<&[SpringState]
     }
 }
 
-fn match_possibilities(states: &[SpringState], runs: &[u64], depth: usize) -> u64 {
-    trace!(
-        "{:indent$} IN {:?}/{:?}",
-        "",
-        states,
-        runs,
-        indent = depth * 2
-    );
-    match runs {
-        [] => {
-            let total = if states.iter().any(|s| *s == SpringState::Damaged) {
-                0
-            } else {
-                1
-            };
-            trace!(
-                "{:indent$} OUT {:?}/{:?} => {} (final)",
-                "",
-                states,
-                runs,
-                total,
-                indent = depth * 2
-            );
-            total
+struct MatchMemoization {
+    state: BTreeMap<(usize, usize), u64>, // map (len of state, len of runs) -> possibilities
+}
+
+impl MatchMemoization {
+    fn new() -> Self {
+        Self {
+            state: BTreeMap::new(),
         }
-        [first, tail_runs @ ..] => {
-            let mut total = 0;
+    }
 
-            // try to consume damage now
-            if let Some(tail_states) = consume_damage(states, *first as usize) {
-                trace!("{:indent$} CONSUMED {}", "", *first, indent = depth * 2);
-                total += match_possibilities(tail_states, tail_runs, depth + 1)
+    fn match_possibilities(&mut self, states: &[SpringState], runs: &[u64], depth: usize) -> u64 {
+        let key = (states.len(), runs.len());
+        if let Some(value) = self.state.get(&key) {
+            return *value;
+        }
+        match runs {
+            [] => {
+                let total = if states.iter().any(|s| *s == SpringState::Damaged) {
+                    0
+                } else {
+                    1
+                };
+                self.state.insert(key, total);
+                total
             }
+            [first, tail_runs @ ..] => {
+                let mut total = 0;
 
-            // if current state is not damage, try to also recurse without consuming damage yet
-            match states {
-                [] => (),                         // non-empty runs, no match
-                [SpringState::Damaged, ..] => (), // damage, must be in a run
-                [_, tail_states @ ..] => {
-                    trace!("{:indent$} SKIP operational", "", indent = depth * 2);
-                    total += match_possibilities(tail_states, runs, depth + 1);
+                // try to consume damage now
+                if let Some(tail_states) = consume_damage(states, *first as usize) {
+                    total += self.match_possibilities(tail_states, tail_runs, depth + 1)
                 }
-            }
 
-            total
+                // if current state is not damage, try to also recurse without consuming damage yet
+                match states {
+                    [] => (),                         // non-empty runs, no match
+                    [SpringState::Damaged, ..] => (), // damage, must be in a run
+                    [_, tail_states @ ..] => {
+                        total += self.match_possibilities(tail_states, runs, depth + 1);
+                    }
+                }
+
+                self.state.insert(key, total);
+                total
+            }
         }
     }
 }
 
 impl SpringLine {
     fn possibilities(&self) -> u64 {
-        match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
+        MatchMemoization::new().match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
     }
 
     fn unfold(self) -> Self {
