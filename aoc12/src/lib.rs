@@ -122,6 +122,21 @@ impl SpringLine {
     fn possibilities(&self) -> u32 {
         match_possibilities(self.states.as_slice(), self.runs.as_slice(), 0)
     }
+
+    fn unfold(self) -> Self {
+        let mut states = Vec::new();
+        let mut runs = Vec::new();
+
+        for _ in 0..4 {
+            states.extend(self.states.iter());
+            states.push(SpringState::Unknown);
+            runs.extend(self.runs.iter());
+        }
+        states.extend(self.states.iter());
+        runs.extend(self.runs.iter());
+
+        Self { states, runs }
+    }
 }
 
 fn spring_line(input: &str) -> IResult<&str, SpringLine> {
@@ -138,6 +153,15 @@ struct Input {
     lines: Vec<SpringLine>,
 }
 
+impl Input {
+    fn unfold(self) -> Self {
+        // Every line must be multipled by 5
+        Self {
+            lines: self.lines.into_iter().map(SpringLine::unfold).collect(),
+        }
+    }
+}
+
 fn parse_input(i: &str) -> IResult<&str, Input> {
     separated_list1(multispace1, spring_line)
         .map(|lines| Input { lines })
@@ -149,6 +173,13 @@ pub fn part1(i: &str) -> u32 {
     assert_eq!(r, "");
 
     d.lines.iter().map(|l| l.possibilities()).sum()
+}
+
+pub fn part2(i: &str) -> u32 {
+    let (r, d) = parse_input(i).expect("valid input");
+    assert_eq!(r, "");
+
+    d.unfold().lines.iter().map(|l| l.possibilities()).sum()
 }
 
 #[cfg(test)]
@@ -208,11 +239,12 @@ mod tests {
     #[test_log::test]
     fn test_runs_debug_cases() {
         assert_eq!(
-            spring_line("?###???????? 3,2,1")
+            spring_line("????.#...#... 4,1,1")
                 .expect("valid")
                 .1
+                .unfold()
                 .possibilities(),
-            10
+            16
         );
     }
 
@@ -261,11 +293,25 @@ mod tests {
                 .possibilities(),
             10
         );
+
+        assert_eq!(
+            spring_line("????.#...#... 4,1,1")
+                .expect("valid")
+                .1
+                .unfold()
+                .possibilities(),
+            16
+        );
     }
 
     #[test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 21);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(include_str!("../example.txt")), 525152);
     }
 
     #[test]
