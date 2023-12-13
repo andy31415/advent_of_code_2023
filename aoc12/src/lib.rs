@@ -1,18 +1,18 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
-    fmt::{Display, Write},
+    collections::{BTreeMap},
+    fmt::{Write},
 };
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{line_ending, multispace1, space1},
+    character::complete::{multispace1, space1},
     combinator::value,
     multi::{many1, separated_list1},
     sequence::separated_pair,
     IResult, Parser,
 };
-use tracing::{debug, info, trace};
+
 
 #[derive(Ord, PartialOrd, PartialEq, Eq, Copy, Clone)]
 pub enum SpringState {
@@ -83,7 +83,7 @@ impl MatchMemoization {
         }
     }
 
-    fn match_possibilities(&mut self, states: &[SpringState], runs: &[u64], depth: usize) -> u64 {
+    fn match_possibilities(&mut self, states: &[SpringState], runs: &[u64]) -> u64 {
         let key = (states.len(), runs.len());
         if let Some(value) = self.state.get(&key) {
             return *value;
@@ -103,7 +103,7 @@ impl MatchMemoization {
 
                 // try to consume damage now
                 if let Some(tail_states) = consume_damage(states, *first as usize) {
-                    total += self.match_possibilities(tail_states, tail_runs, depth + 1)
+                    total += self.match_possibilities(tail_states, tail_runs)
                 }
 
                 // if current state is not damage, try to also recurse without consuming damage yet
@@ -111,7 +111,7 @@ impl MatchMemoization {
                     [] => (),                         // non-empty runs, no match
                     [SpringState::Damaged, ..] => (), // damage, must be in a run
                     [_, tail_states @ ..] => {
-                        total += self.match_possibilities(tail_states, runs, depth + 1);
+                        total += self.match_possibilities(tail_states, runs);
                     }
                 }
 
