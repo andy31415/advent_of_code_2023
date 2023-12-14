@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Write},
 };
 
-use ndarray::{Array2, ArrayView1};
+use ndarray::{Array2, ArrayView1, iter::Lanes, Ix1, NdProducer, Axis};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -92,23 +92,15 @@ enum Smudge {
 
 impl Puzzle {
     fn symmetric_after_col(&self, col: usize) -> bool {
-        let cols = self.data.ncols();
-        for delta in 0..=min(col, cols - col - 2) {
-            if self.data.column(col - delta) != self.data.column(col + delta + 1) {
-                return false;
-            }
-        }
-        true
+        let (mut left, right) = self.data.view().split_at(Axis(1), col+1);
+        left.invert_axis(Axis(1));
+        left.columns().into_iter().zip(right.columns().into_iter()).all(|(a,b)| a == b)
     }
 
     fn symmetric_after_row(&self, row: usize) -> bool {
-        let rows = self.data.nrows();
-        for delta in 0..=min(row, rows - row - 2) {
-            if self.data.row(row - delta) != self.data.row(row + delta + 1) {
-                return false;
-            }
-        }
-        true
+        let (mut left, right) = self.data.view().split_at(Axis(0), row+1);
+        left.invert_axis(Axis(0));
+        left.rows().into_iter().zip(right.rows().into_iter()).all(|(a,b)| a == b)
     }
 
     fn flip(&mut self, r: usize, c: usize) {
