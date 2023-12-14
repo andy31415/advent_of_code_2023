@@ -1,6 +1,4 @@
-use std::{
-    fmt::{Display, Write},
-};
+use std::fmt::{Display, Write};
 
 use ndarray::{Array2, ArrayView1, Axis};
 use nom::{
@@ -90,22 +88,26 @@ enum Smudge {
 }
 
 impl Puzzle {
-    fn symmetric_after_col(&self, col: usize) -> bool {
-        let (mut left, right) = self.data.view().split_at(Axis(1), col + 1);
-        left.invert_axis(Axis(1));
-        left.columns()
+    fn symmetric_after(&self, pos: usize, axis: Axis) -> bool {
+        let (mut left, right) = self.data.view().split_at(axis, pos + 1);
+        left.invert_axis(axis);
+        
+        let other_axis = match axis {
+            Axis(n) => Axis(1-n),
+        };
+        
+        left.lanes(other_axis)
             .into_iter()
-            .zip(right.columns())
+            .zip(right.lanes(other_axis))
             .all(|(a, b)| a == b)
     }
 
+    fn symmetric_after_col(&self, col: usize) -> bool {
+        self.symmetric_after(col, Axis(1))
+    }
+
     fn symmetric_after_row(&self, row: usize) -> bool {
-        let (mut left, right) = self.data.view().split_at(Axis(0), row + 1);
-        left.invert_axis(Axis(0));
-        left.rows()
-            .into_iter()
-            .zip(right.rows())
-            .all(|(a, b)| a == b)
+        self.symmetric_after(row, Axis(0))
     }
 
     fn flip(&mut self, r: usize, c: usize) {
