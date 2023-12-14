@@ -208,7 +208,7 @@ fn puzzle(input: &str) -> IResult<&str, Puzzle> {
         many1(alt((value(false, tag(".")), value(true, tag("#"))))),
     )
     .map(|data| {
-        let cols = data.iter().next().expect("Non-empty puzle").len();
+        let cols = data.first().expect("Non-empty puzle").len();
         let rows = data.len();
 
         assert!(data.iter().all(|v| v.len() == cols));
