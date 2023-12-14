@@ -1,4 +1,7 @@
-use std::cmp::min;
+use std::{
+    cmp::min,
+    fmt::{Display, Write},
+};
 
 use ndarray::Array2;
 use nom::{
@@ -22,8 +25,22 @@ enum Mirror {
     AfterCol(usize),
 }
 
-impl Puzzle {
+impl Display for Puzzle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for r in self.data.rows() {
+            for c in r {
+                match c {
+                    true => f.write_char('#')?,
+                    false => f.write_char('.')?,
+                }
+            }
+            f.write_char('\n')?;
+        }
+        Ok(())
+    }
+}
 
+impl Puzzle {
     fn symmetric_after_col(&self, col: usize) -> bool {
         // todo
         false
@@ -31,23 +48,24 @@ impl Puzzle {
 
     fn symmetric_after_row(&self, row: usize) -> bool {
         let rows = self.data.nrows();
-        
-        eprintln!("Symmetric test: {}", row);
-        for delta in 0..min(row, rows - row) {
-            eprintln!("  DELTA: {}", delta);
-        }
-        
-        
 
-        
-        
-        
-        
-        // todo
-        false
+        eprintln!("Symmetric test: {}", row);
+        for delta in 0..=min(row, rows - row - 2) {
+            eprintln!("  DELTA: {}", delta);
+            if self.data.row(row - delta) != self.data.row(row + delta + 1) {
+                eprintln!("  MISMATCH: {}", delta);
+                eprintln!("  ONE: {:?}", self.data.row(row - delta));
+                eprintln!("  TWO: {:?}", self.data.row(row + delta + 1));
+
+                return false;
+            }
+        }
+
+        true
     }
 
     fn find_symmetry(&self) -> Option<Mirror> {
+        eprintln!("CHECKING:\n{}\n\n", self);
         // find which row or column is symmetric
         for col in 0..(self.data.ncols() - 1) {
             if self.symmetric_after_col(col) {
@@ -118,18 +136,18 @@ mod tests {
     fn test_symmetry() {
         assert_eq!(
             puzzle(
-                "#.##..##.
-..#.##.#.
-##......#
-##......#
-..#.##.#.
-..##..##.
-#.#.##.#."
+                "#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#"
             )
             .expect("valid input")
             .1
             .find_symmetry(),
-            Some(Mirror::AfterCol(5))
+            Some(Mirror::AfterRow(3))
         );
     }
 
