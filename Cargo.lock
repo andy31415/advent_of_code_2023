@@ -101,6 +101,7 @@ dependencies = [
  "ndarray",
  "nom",
  "nom-supreme",
+ "test-log",
  "tracing",
  "tracing-subscriber",
 ]

@@ -13,6 +13,7 @@ use nom::{
     sequence::tuple,
     IResult, Parser,
 };
+use tracing::info;
 
 #[derive(Debug, PartialEq)]
 pub struct Puzzle {
@@ -62,7 +63,7 @@ impl Puzzle {
     }
 
     fn find_symmetry(&self) -> Option<Mirror> {
-        eprintln!("CHECKING:\n{}\n\n", self);
+        info!("CHECKING:\n{}\n\n", self);
         // find which row or column is symmetric
         for col in 0..(self.data.ncols() - 1) {
             if self.symmetric_after_col(col) {
@@ -147,7 +148,7 @@ mod tests {
         assert_eq!(part1(include_str!("../example.txt")), 405);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_symmetry() {
         assert_eq!(
             puzzle(
