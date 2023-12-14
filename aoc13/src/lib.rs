@@ -14,6 +14,41 @@ pub struct Puzzle {
     pub data: Array2<bool>,
 }
 
+#[derive(Debug, PartialEq, PartialOrd)]
+enum Mirror {
+    AfterRow(usize),
+    AfterCol(usize),
+}
+
+impl Puzzle {
+    fn symmetric_after_col(&self, col: usize) -> bool {
+        // todo
+        false
+    }
+
+    fn symmetric_after_row(&self, col: usize) -> bool {
+        // todo
+        false
+    }
+
+    fn find_symmetry(&self) -> Option<Mirror> {
+        // find which row or column is symmetric
+        for col in 0..(self.data.ncols() - 1) {
+            if self.symmetric_after_col(col) {
+                return Some(Mirror::AfterCol(col));
+            }
+        }
+
+        for row in 0..(self.data.nrows() - 1) {
+            if self.symmetric_after_row(row) {
+                return Some(Mirror::AfterRow(row));
+            }
+        }
+
+        None
+    }
+}
+
 fn puzzle(input: &str) -> IResult<&str, Puzzle> {
     separated_list1(
         line_ending,
@@ -61,6 +96,25 @@ mod tests {
         let p = parse_input(include_str!("../example.txt"));
         assert_eq!(p.puzzles.len(), 2);
         assert!(p.puzzles.iter().all(|p| p.data.dim() == (7, 9)));
+    }
+
+    #[test]
+    fn test_symmetry() {
+        assert_eq!(
+            puzzle(
+                "#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#."
+            )
+            .expect("valid input")
+            .1
+            .find_symmetry(),
+            Some(Mirror::AfterCol(5))
+        );
     }
 
     #[test]
