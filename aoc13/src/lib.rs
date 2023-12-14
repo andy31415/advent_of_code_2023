@@ -39,8 +39,8 @@ pub struct Input {
     pub puzzles: Vec<Puzzle>,
 }
 
-fn parse_input(input: &str) -> Puzzle {
-    let (r, data) = separated_list1(tuple((line_ending, line_ending)), multi1(puzzle))
+fn parse_input(input: &str) -> Input {
+    let (r, data) = separated_list1(tuple((line_ending, line_ending)), puzzle)
         .map(|puzzles| Input { puzzles })
         .parse(input)
         .expect("Valid input");
@@ -60,6 +60,7 @@ mod tests {
     fn test_parse_input() {
         let p = parse_input(include_str!("../example.txt"));
         assert_eq!(p.puzzles.len(), 2);
+        assert!(p.puzzles.iter().all(|p| p.data.dim() == (7, 9)));
     }
 
     #[test]
