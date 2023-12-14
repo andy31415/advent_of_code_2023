@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Write},
 };
 
-use ndarray::{Array2, ArrayView1, iter::Lanes, Ix1, NdProducer, Axis};
+use ndarray::{iter::Lanes, Array2, ArrayView1, Axis, Ix1, NdProducer};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -92,15 +92,21 @@ enum Smudge {
 
 impl Puzzle {
     fn symmetric_after_col(&self, col: usize) -> bool {
-        let (mut left, right) = self.data.view().split_at(Axis(1), col+1);
+        let (mut left, right) = self.data.view().split_at(Axis(1), col + 1);
         left.invert_axis(Axis(1));
-        left.columns().into_iter().zip(right.columns().into_iter()).all(|(a,b)| a == b)
+        left.columns()
+            .into_iter()
+            .zip(right.columns().into_iter())
+            .all(|(a, b)| a == b)
     }
 
     fn symmetric_after_row(&self, row: usize) -> bool {
-        let (mut left, right) = self.data.view().split_at(Axis(0), row+1);
+        let (mut left, right) = self.data.view().split_at(Axis(0), row + 1);
         left.invert_axis(Axis(0));
-        left.rows().into_iter().zip(right.rows().into_iter()).all(|(a,b)| a == b)
+        left.rows()
+            .into_iter()
+            .zip(right.rows().into_iter())
+            .all(|(a, b)| a == b)
     }
 
     fn flip(&mut self, r: usize, c: usize) {
