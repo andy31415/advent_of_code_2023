@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use ndarray::Array2;
 use nom::{
     branch::alt,
@@ -21,12 +23,26 @@ enum Mirror {
 }
 
 impl Puzzle {
+
     fn symmetric_after_col(&self, col: usize) -> bool {
         // todo
         false
     }
 
-    fn symmetric_after_row(&self, col: usize) -> bool {
+    fn symmetric_after_row(&self, row: usize) -> bool {
+        let rows = self.data.nrows();
+        
+        eprintln!("Symmetric test: {}", row);
+        for delta in 0..min(row, rows - row) {
+            eprintln!("  DELTA: {}", delta);
+        }
+        
+        
+
+        
+        
+        
+        
         // todo
         false
     }
