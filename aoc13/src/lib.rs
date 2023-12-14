@@ -92,9 +92,7 @@ impl Puzzle {
         let (mut left, right) = self.data.view().split_at(axis, pos + 1);
         left.invert_axis(axis);
         
-        let other_axis = match axis {
-            Axis(n) => Axis(1-n),
-        };
+        let other_axis = Axis(1 - axis.0);
         
         left.lanes(other_axis)
             .into_iter()
