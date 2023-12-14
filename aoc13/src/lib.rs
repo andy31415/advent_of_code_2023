@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Write},
 };
 
-use ndarray::Array2;
+use ndarray::{Array2, ArrayView1};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -41,6 +41,30 @@ impl Display for Puzzle {
     }
 }
 
+fn single_diff(a: ArrayView1<bool>, b: ArrayView1<bool>) -> Option<usize> 
+{
+    assert_eq!(a.len(), b.len());
+
+    let mut result: Option<usize> = None;
+    for ((idx, va), vb) in a.iter().enumerate().zip(b.iter()) {
+        if *va == *vb {
+            continue
+        }
+        
+        if result.is_none() {
+            result = Some(idx);
+        } else {
+            // two diffs
+            return None;
+        }
+        
+    }
+
+    // find out if a and be differ by exactlu one space
+
+    result
+}
+
 impl Puzzle {
     fn symmetric_after_col(&self, col: usize) -> bool {
         let cols = self.data.ncols();
@@ -60,6 +84,65 @@ impl Puzzle {
             }
         }
         true
+    }
+    
+    fn fix_smudge(&mut self) -> Option<Mirror> {
+        // find two lines that seem to be the same and fixing them
+        // results in a different symmetry
+       
+        
+        for row in 0..(self.data.nrows()-1) {
+            let col = single_diff(
+                self.data.row(row),
+                self.data.row(row+1));
+            
+            let col = match col {
+                Some(value) => value,
+                None => continue,
+            };
+            
+            // Differ by a single place. Try to mutate and see if still symmetric
+
+            {
+               let p = self.data.get_mut((row,col)).expect("valid");
+               *p = !*p;
+            }
+            if self.symmetric_after_row(row) {
+                return Some(Mirror::AfterRow(row));
+            }
+            {
+               let p = self.data.get_mut((row,col)).expect("valid");
+               *p = !*p;
+            }
+        }
+
+        for col in 0..(self.data.ncols()-1) {
+            let row = single_diff(
+                self.data.column(col),
+                self.data.column(col+1));
+            
+            let row = match row {
+                Some(value) => value,
+                None => continue,
+            };
+            
+            // Differ by a single place. Try to mutate and see if still symmetric
+
+            {
+               let p = self.data.get_mut((row,col)).expect("valid");
+               *p = !*p;
+            }
+            if self.symmetric_after_col(col) {
+                return Some(Mirror::AfterCol(col));
+            }
+            {
+               let p = self.data.get_mut((row,col)).expect("valid");
+               *p = !*p;
+            }
+        }
+
+       
+        None
     }
 
     fn find_symmetry(&self) -> Option<Mirror> {
@@ -149,6 +232,25 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 405);
+    }
+
+    #[test_log::test]
+    fn test_smudge() {
+        assert_eq!(
+            puzzle(
+                "#...##..#
+#....#..#
+..##..###
+#####.##.
+#####.##.
+..##..###
+#....#..#"
+            )
+            .expect("valid input")
+            .1
+            .fix_smudge(),
+            Some(Mirror::AfterRow(0))
+        );
     }
 
     #[test_log::test]
