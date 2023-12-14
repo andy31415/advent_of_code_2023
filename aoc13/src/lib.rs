@@ -13,9 +13,9 @@ use nom::{
     sequence::tuple,
     IResult, Parser,
 };
-use tracing::info;
+use tracing::{info, trace};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Puzzle {
     pub data: Array2<bool>,
 }
@@ -24,6 +24,15 @@ pub struct Puzzle {
 enum Mirror {
     AfterRow(usize),
     AfterCol(usize),
+}
+
+impl Mirror {
+    pub fn score(&self) -> usize {
+        match self {
+            Mirror::AfterCol(n) => n + 1,
+            Mirror::AfterRow(n) => 100 * (n + 1),
+        }
+    }
 }
 
 impl Display for Puzzle {
@@ -41,28 +50,44 @@ impl Display for Puzzle {
     }
 }
 
-fn single_diff(a: ArrayView1<bool>, b: ArrayView1<bool>) -> Option<usize> 
-{
+fn single_diff(a: ArrayView1<bool>, b: ArrayView1<bool>) -> Option<usize> {
     assert_eq!(a.len(), b.len());
 
     let mut result: Option<usize> = None;
     for ((idx, va), vb) in a.iter().enumerate().zip(b.iter()) {
         if *va == *vb {
-            continue
+            continue;
         }
-        
+
         if result.is_none() {
             result = Some(idx);
         } else {
             // two diffs
             return None;
         }
-        
     }
 
-    // find out if a and be differ by exactlu one space
-
     result
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Copy, Clone)]
+struct ColSmudge {
+    c1: usize,
+    c2: usize,
+    row: usize,
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Copy, Clone)]
+struct RowSmudge {
+    col: usize,
+    r1: usize,
+    r2: usize,
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Copy, Clone)]
+enum Smudge {
+    Col(ColSmudge),
+    Row(RowSmudge),
 }
 
 impl Puzzle {
@@ -85,63 +110,69 @@ impl Puzzle {
         }
         true
     }
-    
+
+    fn flip(&mut self, r: usize, c: usize) {
+        let p = self.data.get_mut((r, c)).expect("valid");
+        *p = !*p;
+    }
+
     fn fix_smudge(&mut self) -> Option<Mirror> {
         // find two lines that seem to be the same and fixing them
         // results in a different symmetry
-       
-        
-        for row in 0..(self.data.nrows()-1) {
-            let col = single_diff(
-                self.data.row(row),
-                self.data.row(row+1));
-            
-            let col = match col {
-                Some(value) => value,
-                None => continue,
-            };
-            
-            // Differ by a single place. Try to mutate and see if still symmetric
+        info!("CHECKING SMUDGE IN:\n{}\n\n", self);
 
-            {
-               let p = self.data.get_mut((row,col)).expect("valid");
-               *p = !*p;
-            }
-            if self.symmetric_after_row(row) {
-                return Some(Mirror::AfterRow(row));
-            }
-            {
-               let p = self.data.get_mut((row,col)).expect("valid");
-               *p = !*p;
+        let mut smudge_options = Vec::new();
+
+        for r1 in 0..(self.data.nrows() - 1) {
+            for r2 in (r1 + 1)..self.data.nrows() {
+                let col = single_diff(self.data.row(r1), self.data.row(r2));
+                if let Some(col) = col {
+                    trace!("  MAYBE DIFF BY 1 in rows: {},{}", r1, r2);
+                    smudge_options.push(Smudge::Row(RowSmudge { r1, r2, col }));
+                }
             }
         }
 
-        for col in 0..(self.data.ncols()-1) {
-            let row = single_diff(
-                self.data.column(col),
-                self.data.column(col+1));
-            
-            let row = match row {
-                Some(value) => value,
-                None => continue,
-            };
-            
-            // Differ by a single place. Try to mutate and see if still symmetric
+        for c1 in 0..(self.data.ncols() - 1) {
+            for c2 in (c1 + 1)..self.data.ncols() {
+                let row = single_diff(self.data.column(c1), self.data.column(c2));
+                if let Some(row) = row {
+                    trace!("  MAYBE DIFF BY 1 in columns: {},{}", c1, c2);
+                    smudge_options.push(Smudge::Col(ColSmudge { c1, c2, row }));
+                }
+            }
+        }
+        info!("Potential smudges: {:?}", smudge_options);
 
-            {
-               let p = self.data.get_mut((row,col)).expect("valid");
-               *p = !*p;
-            }
-            if self.symmetric_after_col(col) {
-                return Some(Mirror::AfterCol(col));
-            }
-            {
-               let p = self.data.get_mut((row,col)).expect("valid");
-               *p = !*p;
+        for option in smudge_options {
+            match option {
+                Smudge::Col(c) => {
+                    // any row should be ok to flip, pick one
+                    self.flip(c.row, c.c1);
+
+                    let symmetry_point = c.c1 + (c.c2 - c.c1) / 2;
+                    if self.symmetric_after_col(symmetry_point) {
+                        return Some(Mirror::AfterCol(symmetry_point));
+                    }
+
+                    // undo the flip if failed
+                    self.flip(c.row, c.c1);
+                }
+                Smudge::Row(r) => {
+                    // any col should be ok to flip, pick one
+                    self.flip(r.r1, r.col);
+
+                    let symmetry_point = r.r1 + (r.r2 - r.r1) / 2;
+                    if self.symmetric_after_row(symmetry_point) {
+                        return Some(Mirror::AfterRow(symmetry_point));
+                    }
+                    
+                    // undo the flip if failed
+                    self.flip(r.r1, r.col);
+                }
             }
         }
 
-       
         None
     }
 
@@ -165,8 +196,7 @@ impl Puzzle {
 
     fn score_symmetry(&self) -> usize {
         match self.find_symmetry() {
-            Some(Mirror::AfterCol(n)) => n + 1,
-            Some(Mirror::AfterRow(n)) => 100 * (n + 1),
+            Some(m) => m.score(),
             None => panic!("no symmetry found for {}", self),
         }
     }
@@ -216,6 +246,14 @@ pub fn part1(input: &str) -> usize {
         .sum()
 }
 
+pub fn part2(input: &str) -> usize {
+    parse_input(input)
+        .puzzles
+        .into_iter()
+        .map(|d| d.clone().fix_smudge().expect("has smudge").score())
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::array;
@@ -229,9 +267,14 @@ mod tests {
         assert!(p.puzzles.iter().all(|p| p.data.dim() == (7, 9)));
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 405);
+    }
+
+    #[test_log::test]
+    fn test_part2() {
+        assert_eq!(part2(include_str!("../example.txt")), 400);
     }
 
     #[test_log::test]
