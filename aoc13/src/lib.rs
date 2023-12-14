@@ -78,8 +78,17 @@ impl Puzzle {
 
         None
     }
-}
+    
+    fn score_symmetry(&self) -> usize {
+        match self.find_symmetry() {
+            Some(Mirror::AfterCol(n)) => n+1,
+            Some(Mirror::AfterRow(n)) => 100*(n+1),
+            None => panic!("no symmetry found for {}", self),
+        }
 
+    }
+}
+ 
 fn puzzle(input: &str) -> IResult<&str, Puzzle> {
     separated_list1(
         line_ending,
@@ -116,6 +125,10 @@ fn parse_input(input: &str) -> Input {
     data
 }
 
+pub fn part1(input: &str) -> usize {
+    parse_input(input).puzzles.iter().map(|d| d.score_symmetry()).sum()
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::array;
@@ -127,6 +140,11 @@ mod tests {
         let p = parse_input(include_str!("../example.txt"));
         assert_eq!(p.puzzles.len(), 2);
         assert!(p.puzzles.iter().all(|p| p.data.dim() == (7, 9)));
+    }
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1(include_str!("../example.txt")), 405);
     }
 
     #[test]
