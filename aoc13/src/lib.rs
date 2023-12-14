@@ -1,9 +1,8 @@
 use std::{
-    cmp::min,
     fmt::{Display, Write},
 };
 
-use ndarray::{iter::Lanes, Array2, ArrayView1, Axis, Ix1, NdProducer};
+use ndarray::{Array2, ArrayView1, Axis};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -96,7 +95,7 @@ impl Puzzle {
         left.invert_axis(Axis(1));
         left.columns()
             .into_iter()
-            .zip(right.columns().into_iter())
+            .zip(right.columns())
             .all(|(a, b)| a == b)
     }
 
@@ -105,7 +104,7 @@ impl Puzzle {
         left.invert_axis(Axis(0));
         left.rows()
             .into_iter()
-            .zip(right.rows().into_iter())
+            .zip(right.rows())
             .all(|(a, b)| a == b)
     }
 
