@@ -79,17 +79,16 @@ impl Puzzle {
 
         None
     }
-    
+
     fn score_symmetry(&self) -> usize {
         match self.find_symmetry() {
-            Some(Mirror::AfterCol(n)) => n+1,
-            Some(Mirror::AfterRow(n)) => 100*(n+1),
+            Some(Mirror::AfterCol(n)) => n + 1,
+            Some(Mirror::AfterRow(n)) => 100 * (n + 1),
             None => panic!("no symmetry found for {}", self),
         }
-
     }
 }
- 
+
 fn puzzle(input: &str) -> IResult<&str, Puzzle> {
     separated_list1(
         line_ending,
@@ -127,7 +126,11 @@ fn parse_input(input: &str) -> Input {
 }
 
 pub fn part1(input: &str) -> usize {
-    parse_input(input).puzzles.iter().map(|d| d.score_symmetry()).sum()
+    parse_input(input)
+        .puzzles
+        .iter()
+        .map(|d| d.score_symmetry())
+        .sum()
 }
 
 #[cfg(test)]
