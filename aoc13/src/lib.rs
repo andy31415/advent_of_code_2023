@@ -5,6 +5,7 @@ use nom::{
     character::complete::line_ending,
     combinator::value,
     multi::{many1, separated_list1},
+    sequence::tuple,
     IResult, Parser,
 };
 
@@ -33,11 +34,33 @@ fn puzzle(input: &str) -> IResult<&str, Puzzle> {
     .parse(input)
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Input {
+    pub puzzles: Vec<Puzzle>,
+}
+
+fn parse_input(input: &str) -> Puzzle {
+    let (r, data) = separated_list1(tuple((line_ending, line_ending)), multi1(puzzle))
+        .map(|puzzles| Input { puzzles })
+        .parse(input)
+        .expect("Valid input");
+
+    assert_eq!(r, "");
+
+    data
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::array;
 
     use super::*;
+
+    #[test]
+    fn test_parse_input() {
+        let p = parse_input(include_str!("../example.txt"));
+        assert_eq!(p.puzzles.len(), 2);
+    }
 
     #[test]
     fn test_parse_puzzle() {
