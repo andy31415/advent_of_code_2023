@@ -166,7 +166,7 @@ impl Puzzle {
                     if self.symmetric_after_row(symmetry_point) {
                         return Some(Mirror::AfterRow(symmetry_point));
                     }
-                    
+
                     // undo the flip if failed
                     self.flip(r.r1, r.col);
                 }
