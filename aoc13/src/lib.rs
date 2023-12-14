@@ -42,25 +42,22 @@ impl Display for Puzzle {
 
 impl Puzzle {
     fn symmetric_after_col(&self, col: usize) -> bool {
-        // todo
-        false
+        let cols = self.data.ncols();
+        for delta in 0..=min(col, cols - col - 2) {
+            if self.data.column(col - delta) != self.data.column(col + delta + 1) {
+                return false;
+            }
+        }
+        true
     }
 
     fn symmetric_after_row(&self, row: usize) -> bool {
         let rows = self.data.nrows();
-
-        eprintln!("Symmetric test: {}", row);
         for delta in 0..=min(row, rows - row - 2) {
-            eprintln!("  DELTA: {}", delta);
             if self.data.row(row - delta) != self.data.row(row + delta + 1) {
-                eprintln!("  MISMATCH: {}", delta);
-                eprintln!("  ONE: {:?}", self.data.row(row - delta));
-                eprintln!("  TWO: {:?}", self.data.row(row + delta + 1));
-
                 return false;
             }
         }
-
         true
     }
 
@@ -148,6 +145,22 @@ mod tests {
             .1
             .find_symmetry(),
             Some(Mirror::AfterRow(3))
+        );
+
+        assert_eq!(
+            puzzle(
+                "#.##..##.
+..#.##.#.
+##......#
+##......#
+..#.##.#.
+..##..##.
+#.#.##.#."
+            )
+            .expect("valid input")
+            .1
+            .find_symmetry(),
+            Some(Mirror::AfterCol(4))
         );
     }
 
