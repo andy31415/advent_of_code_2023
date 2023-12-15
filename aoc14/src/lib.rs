@@ -25,13 +25,51 @@ impl Map {
     fn swap(&mut self, a: (usize, usize), b: (usize, usize)) {
         (*self.at_mut(a), *self.at_mut(b)) = (self.at(b), self.at(a));
     }
-    
+
     fn at(&self, pos: (usize, usize)) -> Item {
-        *self.data.get(pos.0).and_then(|v| v.get(pos.1)).expect("valid position")
+        *self
+            .data
+            .get(pos.0)
+            .and_then(|v| v.get(pos.1))
+            .expect("valid position")
     }
 
     fn at_mut(&mut self, pos: (usize, usize)) -> &mut Item {
-        self.data.get_mut(pos.0).and_then(|v| v.get_mut(pos.1)).expect("valid position")
+        self.data
+            .get_mut(pos.0)
+            .and_then(|v| v.get_mut(pos.1))
+            .expect("valid position")
+    }
+
+    fn rows(&self) -> usize {
+        self.data.len()
+    }
+
+    fn cols(&self) -> usize {
+        self.data.get(0).map(|v| v.len()).unwrap_or(0)
+    }
+
+    fn push_up(&mut self) {
+        // VERY slow algorithm to push one space up each time
+        // Given small data set this is ok. We could do N2 instead of N3 if we wanted,
+        // but more work
+        loop {
+            let mut changes = 0;
+
+            for r in 1..self.rows() {
+                for c in 0..self.cols() {
+                    let above = (r - 1, c);
+                    if (self.at((r, c)) == Item::Movable) && (self.at(above) == Item::Free) {
+                        self.swap((r, c), above);
+                        changes += 1;
+                    }
+                }
+            }
+
+            if changes == 0 {
+                break;
+            }
+        }
     }
 }
 
@@ -48,32 +86,52 @@ fn parse_map(input: &str) -> Map {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_push_up() {
+        let mut map = parse_map("#.O\n...\nOOO");
+
+        map.push_up();
+
+        assert_eq!(
+            map,
+            Map {
+                data: vec![
+                    vec![Item::Immovable, Item::Movable, Item::Movable],
+                    vec![Item::Movable, Item::Free, Item::Movable],
+                    vec![Item::Free, Item::Free, Item::Free],
+                ],
+            }
+        );
+    }
 
     #[test]
     fn test_swap() {
         let mut map = parse_map("#.O\nOOO\n..#");
-        map.swap((0,0), (2,1));
-        
+        map.swap((0, 0), (2, 1));
+
         assert_eq!(
             map,
-        Map{
-            data: vec![
-                vec![Item::Free, Item::Free, Item::Movable],
-                vec![Item::Movable, Item::Movable, Item::Movable],
-                vec![Item::Free, Item::Immovable, Item::Immovable],
-            ],
-        });
+            Map {
+                data: vec![
+                    vec![Item::Free, Item::Free, Item::Movable],
+                    vec![Item::Movable, Item::Movable, Item::Movable],
+                    vec![Item::Free, Item::Immovable, Item::Immovable],
+                ],
+            }
+        );
     }
 
     #[test]
     fn test_map_parse() {
-        assert_eq!(parse_map("#.O\nOOO\n..#"),
-        Map{
-            data: vec![
-                vec![Item::Immovable, Item::Free, Item::Movable],
-                vec![Item::Movable, Item::Movable, Item::Movable],
-                vec![Item::Free, Item::Free, Item::Immovable],
-            ],
-        });
+        assert_eq!(
+            parse_map("#.O\nOOO\n..#"),
+            Map {
+                data: vec![
+                    vec![Item::Immovable, Item::Free, Item::Movable],
+                    vec![Item::Movable, Item::Movable, Item::Movable],
+                    vec![Item::Free, Item::Free, Item::Immovable],
+                ],
+            }
+        );
     }
 }
