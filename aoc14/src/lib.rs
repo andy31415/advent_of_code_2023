@@ -16,7 +16,7 @@ impl From<char> for Item {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Hash, Eq, Ord)]
 struct Map {
     data: Vec<Vec<Item>>,
 }
@@ -49,18 +49,25 @@ impl Map {
         self.data.get(0).map(|v| v.len()).unwrap_or(0)
     }
 
-    fn push_up(&mut self) {
+    fn push(&mut self, dir: (i32, i32)) {
         // VERY slow algorithm to push one space up each time
         // Given small data set this is ok. We could do N2 instead of N3 if we wanted,
         // but more work
         loop {
             let mut changes = 0;
+            
+            let row_start = if dir.0 == -1 { 1 } else { 0 } as i32;
+            let row_end = if dir.0 == 1 { self.rows() - 1 } else { self.rows() } as i32;
 
-            for r in 1..self.rows() {
-                for c in 0..self.cols() {
-                    let above = (r - 1, c);
-                    if (self.at((r, c)) == Item::Movable) && (self.at(above) == Item::Free) {
-                        self.swap((r, c), above);
+            let col_start = if dir.1 == -1 { 1 } else { 0 } as i32;
+            let col_end = if dir.1 == 1 { self.cols() - 1 } else { self.cols() } as i32;
+
+            for r in row_start..row_end {
+                for c in col_start..col_end {
+                    let current = (r as usize, c as usize);
+                    let other = ((r + dir.0) as usize, (c + dir.1) as usize);
+                    if (self.at(current) == Item::Movable) && (self.at(other) == Item::Free) {
+                        self.swap(current, other);
                         changes += 1;
                     }
                 }
@@ -70,6 +77,10 @@ impl Map {
                 break;
             }
         }
+    }
+
+    fn push_up(&mut self) {
+        self.push((-1, 0));
     }
 
     fn score_weight(&self) -> usize {
