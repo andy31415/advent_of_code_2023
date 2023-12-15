@@ -87,6 +87,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_push_example() {
+        let mut map = parse_map(include_str!("../example.txt"));
+        map.push_up();
+
+        assert_eq!(map,
+                   parse_map(include_str!("../example_pushed.txt"))
+        );
+    }
+
+    #[test]
     fn test_push_up() {
         let mut map = parse_map("#.O\n...\nOOO");
 
