@@ -1,4 +1,7 @@
-use std::{fmt::{Display, Write}, collections::{HashSet, HashMap}};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{Display, Write},
+};
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Hash, Copy, Clone)]
 enum Item {
@@ -86,14 +89,14 @@ impl Map {
         let row_range: Vec<usize> = match dir.0 {
             -1 => (1..self.rows()).collect(),
             0 => (0..self.rows()).collect(),
-            1 => (0..(self.rows()-1)).rev().collect(),
+            1 => (0..(self.rows() - 1)).rev().collect(),
             _ => unreachable!(),
         };
 
         let col_range: Vec<usize> = match dir.1 {
             -1 => (1..self.cols()).collect(),
             0 => (0..self.cols()).collect(),
-            1 => (0..(self.cols()-1)).rev().collect(),
+            1 => (0..(self.cols() - 1)).rev().collect(),
             _ => unreachable!(),
         };
 
@@ -130,7 +133,7 @@ impl Map {
     fn push_up(&mut self) {
         self.push((-1, 0));
     }
-    
+
     fn cycle(&mut self) {
         self.push((-1, 0));
         self.push((0, -1));
@@ -197,15 +200,14 @@ pub fn part2(input: &str, cnt: usize) -> usize {
             break;
         }
     }
-    
+
     let left = cnt - rotations;
     let left = left % cycle_size;
-    for _ in 0..left { 
+    for _ in 0..left {
         for dir in dirs.iter() {
             map.push(*dir);
         }
     }
-    
 
     map.score_weight()
 }
