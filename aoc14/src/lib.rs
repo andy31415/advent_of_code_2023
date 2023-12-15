@@ -23,12 +23,15 @@ struct Map {
 
 impl Map {
     fn swap(&mut self, a: (usize, usize), b: (usize, usize)) {
-        let data_a = *self.data.get(a.0).and_then(|v| v.get(a.1)).expect("valid a");
-        let data_b = *self.data.get(b.0).and_then(|v| v.get(b.1)).expect("valid b");
+        (*self.at_mut(a), *self.at_mut(b)) = (self.at(b), self.at(a));
+    }
+    
+    fn at(&self, pos: (usize, usize)) -> Item {
+        *self.data.get(pos.0).and_then(|v| v.get(pos.1)).expect("valid position")
+    }
 
-        *self.data.get_mut(a.0).and_then(|v| v.get_mut(a.1)).expect("valid b") = data_b;
-        *self.data.get_mut(b.0).and_then(|v| v.get_mut(b.1)).expect("valid a") = data_a;
-
+    fn at_mut(&mut self, pos: (usize, usize)) -> &mut Item {
+        self.data.get_mut(pos.0).and_then(|v| v.get_mut(pos.1)).expect("valid position")
     }
 }
 
