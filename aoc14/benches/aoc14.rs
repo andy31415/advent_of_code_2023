@@ -1,3 +1,5 @@
+use divan::black_box;
+
 fn main() {
     // Run registered benchmarks.
     divan::main();
@@ -5,7 +7,7 @@ fn main() {
 
 #[divan::bench]
 fn part1() {
-    // println!("TODO: bench part 1");
+    aoc14::part1(black_box(include_str!("../input.txt")));
 }
 
 #[divan::bench]
