@@ -71,6 +71,20 @@ impl Map {
             }
         }
     }
+
+    fn score_weight(&self) -> usize {
+        let mut total = 0usize;
+
+        for r in 0..self.rows() {
+            for c in 0..self.rows() {
+                if self.at((r, c)) == Item::Movable {
+                    total += self.rows() - r;
+                }
+            }
+        }
+
+        total
+    }
 }
 
 fn parse_map(input: &str) -> Map {
@@ -82,18 +96,27 @@ fn parse_map(input: &str) -> Map {
     }
 }
 
+pub fn part1(input: &str) -> usize {
+    let mut map = parse_map(input);
+    map.push_up();
+    map.score_weight()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1(include_str!("../example.txt")), 136);
+    }
 
     #[test]
     fn test_push_example() {
         let mut map = parse_map(include_str!("../example.txt"));
         map.push_up();
 
-        assert_eq!(map,
-                   parse_map(include_str!("../example_pushed.txt"))
-        );
+        assert_eq!(map, parse_map(include_str!("../example_pushed.txt")));
     }
 
     #[test]
