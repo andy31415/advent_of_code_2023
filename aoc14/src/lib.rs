@@ -1,3 +1,5 @@
+use std::{fmt::{Display, Write}, collections::{HashSet, HashMap}};
+
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Hash, Copy, Clone)]
 enum Item {
     Free,
@@ -19,6 +21,22 @@ impl From<char> for Item {
 #[derive(Debug, PartialEq, PartialOrd, Clone, Hash, Eq, Ord)]
 struct Map {
     data: Vec<Vec<Item>>,
+}
+
+impl Display for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for r in 0..self.rows() {
+            for c in 0..self.cols() {
+                f.write_char(match self.at((r, c)) {
+                    Item::Free => '.',
+                    Item::Movable => 'O',
+                    Item::Immovable => '#',
+                })?;
+            }
+            f.write_char('\n')?;
+        }
+        Ok(())
+    }
 }
 
 impl Map {
@@ -65,23 +83,23 @@ impl Map {
 
     fn push(&mut self, dir: (i32, i32)) {
         // Somewhat slow algorithm to push one space up each time
-        let row_start = if dir.0 == -1 { 1 } else { 0 } as i32;
-        let row_end = if dir.0 == 1 {
-            self.rows() - 1
-        } else {
-            self.rows()
-        } as i32;
+        let row_range: Vec<usize> = match dir.0 {
+            -1 => (1..self.rows()).collect(),
+            0 => (0..self.rows()).collect(),
+            1 => (0..(self.rows()-1)).rev().collect(),
+            _ => unreachable!(),
+        };
 
-        let col_start = if dir.1 == -1 { 1 } else { 0 } as i32;
-        let col_end = if dir.1 == 1 {
-            self.cols() - 1
-        } else {
-            self.cols()
-        } as i32;
+        let col_range: Vec<usize> = match dir.1 {
+            -1 => (1..self.cols()).collect(),
+            0 => (0..self.cols()).collect(),
+            1 => (0..(self.cols()-1)).rev().collect(),
+            _ => unreachable!(),
+        };
 
-        for r in row_start..row_end {
-            for c in col_start..col_end {
-                let mut current = (r as usize, c as usize);
+        for r in row_range {
+            for c in col_range.as_slice() {
+                let mut current = (r as usize, *c as usize);
                 let mut other = self.move_pos(current, dir).expect("valid");
                 if self.at(current) != Item::Movable {
                     continue;
@@ -111,6 +129,13 @@ impl Map {
 
     fn push_up(&mut self) {
         self.push((-1, 0));
+    }
+    
+    fn cycle(&mut self) {
+        self.push((-1, 0));
+        self.push((0, -1));
+        self.push((1, 0));
+        self.push((0, 1));
     }
 
     fn score_weight(&self) -> usize {
@@ -143,6 +168,48 @@ pub fn part1(input: &str) -> usize {
     map.score_weight()
 }
 
+pub fn part2(input: &str, cnt: usize) -> usize {
+    let mut map = parse_map(input);
+
+    let dirs = vec![(-1, 0), (0, -1), (1, 0), (0, 1)];
+
+    // do one cycle to start in a maybe-stable position
+    let mut rotations = 0;
+    let mut options = HashSet::new();
+
+    while rotations < cnt {
+        map.cycle();
+        rotations += 1;
+
+        if options.contains(&map) {
+            break;
+        }
+        options.insert(map.clone());
+    }
+
+    let target = map.clone();
+    let mut cycle_size = 0usize;
+    loop {
+        map.cycle();
+        cycle_size += 1;
+        rotations += 1;
+        if map == target {
+            break;
+        }
+    }
+    
+    let left = cnt - rotations;
+    let left = left % cycle_size;
+    for _ in 0..left { 
+        for dir in dirs.iter() {
+            map.push(*dir);
+        }
+    }
+    
+
+    map.score_weight()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -150,6 +217,11 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 136);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(include_str!("../example.txt"), 1000000000), 64);
     }
 
     #[test]
