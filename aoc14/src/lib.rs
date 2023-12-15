@@ -49,32 +49,62 @@ impl Map {
         self.data.get(0).map(|v| v.len()).unwrap_or(0)
     }
 
+    fn move_pos(&self, pos: (usize, usize), dir: (i32, i32)) -> Option<(usize, usize)> {
+        let test_r = pos.0 as i32 + dir.0;
+        if test_r < 0 || test_r >= self.rows() as i32 {
+            return None;
+        }
+
+        let test_c = pos.1 as i32 + dir.1;
+        if test_c < 0 || test_c >= self.cols() as i32 {
+            return None;
+        }
+
+        Some((test_r as usize, test_c as usize))
+    }
+
     fn push(&mut self, dir: (i32, i32)) {
-        // VERY slow algorithm to push one space up each time
-        // Given small data set this is ok. We could do N2 instead of N3 if we wanted,
-        // but more work
-        loop {
-            let mut changes = 0;
-            
-            let row_start = if dir.0 == -1 { 1 } else { 0 } as i32;
-            let row_end = if dir.0 == 1 { self.rows() - 1 } else { self.rows() } as i32;
+        // Somewhat slow algorithm to push one space up each time
+        let row_start = if dir.0 == -1 { 1 } else { 0 } as i32;
+        let row_end = if dir.0 == 1 {
+            self.rows() - 1
+        } else {
+            self.rows()
+        } as i32;
 
-            let col_start = if dir.1 == -1 { 1 } else { 0 } as i32;
-            let col_end = if dir.1 == 1 { self.cols() - 1 } else { self.cols() } as i32;
+        let col_start = if dir.1 == -1 { 1 } else { 0 } as i32;
+        let col_end = if dir.1 == 1 {
+            self.cols() - 1
+        } else {
+            self.cols()
+        } as i32;
 
-            for r in row_start..row_end {
-                for c in col_start..col_end {
-                    let current = (r as usize, c as usize);
-                    let other = ((r + dir.0) as usize, (c + dir.1) as usize);
-                    if (self.at(current) == Item::Movable) && (self.at(other) == Item::Free) {
-                        self.swap(current, other);
-                        changes += 1;
+        for r in row_start..row_end {
+            for c in col_start..col_end {
+                let mut current = (r as usize, c as usize);
+                let mut other = self.move_pos(current, dir).expect("valid");
+                if self.at(current) != Item::Movable {
+                    continue;
+                }
+
+                if self.at(other) != Item::Free {
+                    continue;
+                }
+
+                // keep moving while we can
+                loop {
+                    self.swap(current, other);
+
+                    current = other;
+                    other = match self.move_pos(current, dir) {
+                        Some(n) => n,
+                        None => break,
+                    };
+
+                    if self.at(other) != Item::Free {
+                        break;
                     }
                 }
-            }
-
-            if changes == 0 {
-                break;
             }
         }
     }
