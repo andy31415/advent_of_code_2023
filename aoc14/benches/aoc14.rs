@@ -12,5 +12,5 @@ fn part1() {
 
 #[divan::bench]
 fn part2() {
-    // println!("TODO: bench part 2");
+    aoc14::part2(black_box(include_str!("../input.txt")), 1000000000);
 }
