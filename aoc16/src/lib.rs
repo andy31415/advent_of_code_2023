@@ -1,7 +1,15 @@
+use std::collections::HashMap;
+
 use itertools::Itertools;
-use nom::{branch::alt, bytes::complete::tag, combinator::value, multi::many1, IResult, Parser};
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::line_ending,
+    combinator::value,
+    multi::{many1, separated_list1},
+    IResult, Parser,
+};
 use nom_locate::LocatedSpan;
-use nom_supreme::ParserExt;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 enum MirrorDirection {
@@ -21,7 +29,7 @@ enum Tile {
     Mirror(MirrorDirection),
 }
 
-fn parse_row(input: LocatedSpan<&str>) -> IResult<LocatedSpan<&str>, Vec<(usize, Tile)>> {
+fn input_row(input: LocatedSpan<&str>) -> IResult<LocatedSpan<&str>, Vec<(usize, Tile)>> {
     many1(alt((
         value(Some(Tile::Split(SplitDirection::UpDown)), tag("|")),
         value(Some(Tile::Split(SplitDirection::LeftRight)), tag("-")),
@@ -44,17 +52,49 @@ fn parse_row(input: LocatedSpan<&str>) -> IResult<LocatedSpan<&str>, Vec<(usize,
     .parse(input)
 }
 
+fn parse_input(input: LocatedSpan<&str>) -> HashMap<(usize, usize), Tile> {
+    separated_list1(line_ending, input_row)
+        .map(|rows| {
+            rows.into_iter()
+                .enumerate()
+                .flat_map(|(row, row_pos)| row_pos.into_iter().map(move |(col, t)| ((row, col), t)))
+                .collect()
+        })
+        .parse(input)
+        .expect("Valid input")
+        .1
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn test_input_parse() {
+        assert_eq!(
+            parse_input(".|...\\....\n|.-.\\.....\n..//.|....".into()),
+            [
+                ((0, 1), Tile::Split(SplitDirection::UpDown)),
+                ((0, 5), Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+                ((1, 0), Tile::Split(SplitDirection::UpDown)),
+                ((1, 2), Tile::Split(SplitDirection::LeftRight)),
+                ((1, 4), Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+                ((2, 2), Tile::Mirror(MirrorDirection::LeftUpRightDown)),
+                ((2, 3), Tile::Mirror(MirrorDirection::LeftUpRightDown)),
+                ((2, 5), Tile::Split(SplitDirection::UpDown)),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
     fn test_row_parse() {
         assert_eq!(
-            parse_row(".|...\\....".into()).expect("valid").1,
-        vec![
-            (1, Tile::Split(SplitDirection::UpDown)),
-            (5, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
-        ]);
+            input_row(".|...\\....".into()).expect("valid").1,
+            vec![
+                (1, Tile::Split(SplitDirection::UpDown)),
+                (5, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+            ]
+        );
     }
 }
