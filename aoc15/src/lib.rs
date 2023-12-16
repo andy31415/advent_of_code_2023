@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::trace;
+use tracing::{trace, info};
 
 fn update_hash(current: u8, c: char) -> u8 {
     let x = current as usize;
@@ -73,8 +73,39 @@ impl<'a> Mapping<'a> {
         }
     }
 
-    fn perform(&mut self, action: Action) {
-        todo!();
+    fn perform(&mut self, action: &Action<'a>) {
+        let h = hash_string(action.label);
+        let b = self.map.get_mut(&h);
+
+        match b {
+            None => {
+                if let Operation::Add(focus) = action.operation {
+                    self.map.insert(
+                        h,
+                        vec![Lens {
+                            label: action.label,
+                            focus,
+                        }],
+                    );
+                }
+                // if not add, nothing to do as label does not exist
+            }
+            Some(v) => {
+                match action.operation {
+                    Operation::Add(focus) => {
+                        // Choices: update existing item or append
+                        match v.iter_mut().find(|lens| lens.label == action.label) {
+                            Some(item) => item.focus = focus,
+                            None => v.push(Lens {
+                                label: action.label,
+                                focus,
+                            }),
+                        }
+                    }
+                    Operation::Remove => v.retain(|lens| lens.label != action.label),
+                }
+            }
+        }
     }
 
     fn total_focusing_power(&self) -> usize {
@@ -101,7 +132,8 @@ pub fn part2(s: &str) -> usize {
         .flatten()
         .map(|s| s.into())
     {
-        m.perform(action)
+        m.perform(&action);
+        info!("After {:?}: {:?}", &action, &m);
     }
 
     m.total_focusing_power()
@@ -111,6 +143,15 @@ pub fn part2(s: &str) -> usize {
 mod tests {
     use super::*;
 
+
+    #[test_log::test]
+    fn test_part2() {
+        assert_eq!(
+            part2("rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7"),
+            145
+        );
+
+    }
     #[test]
     fn test_into_action() {
         assert_eq!(

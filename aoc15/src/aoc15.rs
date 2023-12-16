@@ -10,5 +10,6 @@ fn main() {
     let s1 = aoc15::part1(include_str!("../input.txt"));
     println!("Part 1: {}", s1);
 
-    println!("Part 2:");
+    let s2 = aoc15::part2(include_str!("../input.txt"));
+    println!("Part 2: {}", s2);
 }
