@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
     fmt::Write,
-    path::Display, ops::RemAssign,
 };
 
 use itertools::Itertools;
