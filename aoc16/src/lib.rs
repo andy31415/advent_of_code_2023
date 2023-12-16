@@ -379,10 +379,9 @@ mod tests {
         assert_eq!(part1(include_str!("../example.txt")), 46);
     }
 
-
     #[test_log::test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")),  51);
+        assert_eq!(part2(include_str!("../example.txt")), 51);
     }
 
     #[test]
