@@ -16,9 +16,20 @@ fn hash_string(s: &str) -> u8 {
     s.chars().fold(0, |acc, c| update_hash(acc, c))
 }
 
+fn part1(s: &str) -> usize { 
+    s.split('\n').map(|l| l.split(',')).flatten().fold(0, |acc, s| {
+        acc + hash_string(s) as usize
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1("rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7"), 1320);
+    }
 
     #[test_log::test]
     fn test_hash() {
