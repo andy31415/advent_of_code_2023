@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tracing::trace;
 
 fn update_hash(current: u8, c: char) -> u8 {
@@ -51,6 +53,58 @@ impl<'a> From<&'a str> for Action<'a> {
             label: &value[0..(value.len() - 1)],
         };
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+struct Lens<'a> {
+    label: &'a str,
+    focus: i32,
+}
+
+#[derive(Debug)]
+struct Mapping<'a> {
+    map: HashMap<u8, Vec<Lens<'a>>>,
+}
+
+impl<'a> Mapping<'a> {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    fn perform(&mut self, action: Action) {
+        todo!();
+    }
+
+    fn total_focusing_power(&self) -> usize {
+        let mut total = 0;
+        for idx in 0..256 {
+            let key = idx as u8;
+            if let Some(v) = self.map.get(&key) {
+                let multiplier = (idx + 1) as usize;
+                total += multiplier
+                    * v.iter()
+                        .enumerate()
+                        .fold(0, |acc, (idx, v)| acc + ((idx + 1) * v.focus as usize))
+            }
+        }
+        total
+    }
+}
+
+pub fn part2(s: &str) -> usize {
+    let mut m = Mapping::new();
+    for action in s
+        .split('\n')
+        .map(|l| l.split(','))
+        .flatten()
+        .map(|s| s.into())
+    {
+        m.perform(action)
+    }
+
+    m.total_focusing_power()
 }
 
 #[cfg(test)]
