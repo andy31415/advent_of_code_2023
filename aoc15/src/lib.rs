@@ -16,7 +16,7 @@ fn hash_string(s: &str) -> u8 {
     s.chars().fold(0, |acc, c| update_hash(acc, c))
 }
 
-fn part1(s: &str) -> usize { 
+pub fn part1(s: &str) -> usize { 
     s.split('\n').map(|l| l.split(',')).flatten().fold(0, |acc, s| {
         acc + hash_string(s) as usize
     })

@@ -7,7 +7,8 @@ fn main() {
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
 
-    println!("Part 1:");
+    let s1 = aoc15::part1(include_str!("../input.txt"));
+    println!("Part 1: {}", s1);
 
     println!("Part 2:");
 }
