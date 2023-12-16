@@ -22,9 +22,49 @@ pub fn part1(s: &str) -> usize {
     })
 }
 
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+enum Operation {
+    Add(i32),
+    Remove,
+}
+
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+struct Action<'a> {
+    operation: Operation,
+    label:  &'a str,
+}
+
+impl<'a> From<&'a str> for Action<'a> {
+    fn from(value: &'a str) -> Self {
+        if let Some(pos) = value.find('=') {
+            let (label, lens) = value.split_at(pos);
+            return Self {
+                label,
+                operation: Operation::Add(lens[1..].parse().unwrap()),
+            };
+        }
+        assert_eq!(value.chars().last().unwrap(), '-');
+        
+        return Self {
+            operation: Operation::Remove,
+            label: &value[0..(value.len() - 1)],
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_into_action() {
+        assert_eq!(Action { operation: Operation::Add(1), label: "rn"}, "rn=1".into());
+        assert_eq!(Action { operation: Operation::Remove, label: "cm"}, "cm-".into());
+        assert_eq!(Action { operation: Operation::Add(3), label: "qp"}, "qp=3".into());
+        assert_eq!(Action { operation: Operation::Remove, label: "pc"}, "pc-".into());
+        assert_eq!(Action { operation: Operation::Add(7), label: "ot"}, "ot=7".into());
+    }
 
     #[test]
     fn test_part1() {
