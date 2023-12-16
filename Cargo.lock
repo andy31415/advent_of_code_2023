@@ -141,6 +141,7 @@ dependencies = [
  "nom",
  "nom-supreme",
  "nom_locate",
+ "rayon",
  "test-log",
  "tracing",
  "tracing-subscriber",

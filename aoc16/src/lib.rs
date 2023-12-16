@@ -3,6 +3,8 @@ use std::{
     fmt::Write,
 };
 
+use rayon::prelude::*;
+
 use itertools::Itertools;
 use nom::{
     branch::alt,
@@ -114,6 +116,7 @@ impl Beam {
     }
 }
 
+#[derive(Clone)]
 struct LightMap {
     map: HashMap<(usize, usize), Tile>,
     energy: HashMap<(usize, usize), Beam>,
@@ -174,7 +177,7 @@ impl LightMap {
         col: usize,
         d: Direction,
     ) -> Vec<(usize, usize, Direction)> {
-        let map_element = self.map.get(&(row,col));
+        let map_element = self.map.get(&(row, col));
 
         // Energize current tile
         match self.energy.get_mut(&(row, col)) {
@@ -272,11 +275,11 @@ impl LightMap {
     }
 
     // Runs energy calculation but resets enegy map back
-    fn energy_for_beam(&mut self, row: usize, col: usize, d: Direction) -> usize {
-        self.energy.clear();
-        self.send_light(row, col, d);
-        let energy = self.count_energy();
-        self.energy.clear();
+    fn energy_for_beam(&self, row: usize, col: usize, d: Direction) -> usize {
+        let mut copy = self.clone();
+        copy.energy.clear();
+        copy.send_light(row, col, d);
+        let energy = copy.count_energy();
         energy
     }
 
@@ -285,9 +288,12 @@ impl LightMap {
         (0..self.rows)
             .map(|r| (r, 0, Direction::Right))
             .chain((0..self.cols).map(|c| (0, c, Direction::Down)))
-            .map(|(r, c, d)| (r, c, d, self.energy_for_beam(r, c, d)))
+            .collect_vec()
+            .par_iter()
+            .map(|(r, c, d)| (*r, *c, *d, self.energy_for_beam(*r, *c, *d)))
             .max_by(|a, b| a.3.cmp(&b.3))
             .expect("Has value")
+
     }
 
     fn count_energy(&self) -> usize {
