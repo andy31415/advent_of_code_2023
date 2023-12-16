@@ -115,19 +115,17 @@ impl Beam {
 }
 
 struct LightMap {
+    map: HashMap<(usize, usize), Tile>,
     energy: HashMap<(usize, usize), Beam>,
     rows: usize,
     cols: usize,
-
-    // faster access for algorightms
-    row_mirrors: HashMap<usize, HashMap<usize, Tile>>,
 }
 
 impl std::fmt::Display for LightMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in 0..self.rows {
             for col in 0..self.cols {
-                match self.row_mirrors.get(&row).and_then(|h| h.get(&col)) {
+                match self.map.get(&(row, col)) {
                     Some(t) => f.write_fmt(format_args!("{}", t))?,
                     None => f.write_char('.')?,
                 }
@@ -150,22 +148,9 @@ impl std::fmt::Display for LightMap {
 
 impl LightMap {
     fn new(mirror_map: &Vec<(usize, usize, Tile)>, rows: usize, cols: usize) -> Self {
-        let mut row_mirrors: HashMap<usize, HashMap<usize, Tile, _>> = HashMap::new();
-
-        for (row, col, tile) in mirror_map {
-            match row_mirrors.get_mut(row) {
-                Some(h) => {
-                    h.insert(*col, *tile);
-                }
-                None => {
-                    row_mirrors.insert(*row, HashMap::from_iter([(*col, *tile)]));
-                }
-            }
-        }
-
         Self {
             energy: HashMap::new(),
-            row_mirrors,
+            map: mirror_map.iter().map(|(r, c, t)| ((*r, *c), *t)).collect(),
             rows,
             cols,
         }
@@ -189,7 +174,7 @@ impl LightMap {
         col: usize,
         d: Direction,
     ) -> Vec<(usize, usize, Direction)> {
-        let map_element = self.row_mirrors.get(&row).and_then(|h| h.get(&col));
+        let map_element = self.map.get(&(row,col));
 
         // Energize current tile
         match self.energy.get_mut(&(row, col)) {
