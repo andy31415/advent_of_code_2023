@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::{trace, info};
+use tracing::{info, trace};
 
 fn update_hash(current: u8, c: char) -> u8 {
     let x = current as usize;
@@ -143,14 +143,12 @@ pub fn part2(s: &str) -> usize {
 mod tests {
     use super::*;
 
-
     #[test_log::test]
     fn test_part2() {
         assert_eq!(
             part2("rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7"),
             145
         );
-
     }
     #[test]
     fn test_into_action() {
