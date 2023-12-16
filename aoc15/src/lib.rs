@@ -15,13 +15,12 @@ fn update_hash(current: u8, c: char) -> u8 {
 }
 
 fn hash_string(s: &str) -> u8 {
-    s.chars().fold(0, |acc, c| update_hash(acc, c))
+    s.chars().fold(0, update_hash)
 }
 
 pub fn part1(s: &str) -> usize {
     s.split('\n')
-        .map(|l| l.split(','))
-        .flatten()
+        .flat_map(|l| l.split(','))
         .fold(0, |acc, s| acc + hash_string(s) as usize)
 }
 
@@ -48,10 +47,10 @@ impl<'a> From<&'a str> for Action<'a> {
         }
         assert_eq!(value.chars().last().unwrap(), '-');
 
-        return Self {
+        Self {
             operation: Operation::Remove,
             label: &value[0..(value.len() - 1)],
-        };
+        }
     }
 }
 
@@ -128,8 +127,7 @@ pub fn part2(s: &str) -> usize {
     let mut m = Mapping::new();
     for action in s
         .split('\n')
-        .map(|l| l.split(','))
-        .flatten()
+        .flat_map(|l| l.split(','))
         .map(|s| s.into())
     {
         m.perform(&action);
