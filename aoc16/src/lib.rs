@@ -29,6 +29,7 @@ enum Tile {
     Mirror(MirrorDirection),
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 enum Direction {
     Left,
     Right,
@@ -111,6 +112,94 @@ impl LightMap {
         }
     }
 
+    fn move_towards(&self, row: usize, col: usize, d: Direction) -> Option<(usize, usize)> {
+        match d {
+            Direction::Left if row > 0 => Some((row - 1, col)),
+            Direction::Right if row + 1 < self.rows => Some((row + 1, col)),
+            Direction::Up if col > 0 => Some((row, col - 1)),
+            Direction::Down if col + 1 < self.cols => Some((row, col + 1)),
+            _ => None,
+        }
+    }
+
+    /// Beams the light at the specified row, column and direction
+    /// returns where the light goes from there
+    fn beam_step(&mut self, row: usize, col: usize, d: Direction) -> Vec<(usize, usize)> {
+        let map_element = self.row_mirrors.get(&row).and_then(|h| h.get(&col));
+
+        // Energize current tile
+        match self.energy.get_mut(&(row, col)) {
+            Some(v) => v.energize(d),
+            None => {
+                self.energy.insert((row, col), {
+                    let mut b = Beam::default();
+                    b.energize(d);
+                    b
+                });
+            }
+        }
+
+        // Figure out where to go with the beams
+        let mut directions = Vec::new();
+        match map_element {
+            None => directions.push(d),
+            Some(tile) => match (tile, d) {
+                (Tile::Split(SplitDirection::LeftRight), Direction::Left)
+                | (Tile::Split(SplitDirection::LeftRight), Direction::Right)
+                | (Tile::Split(SplitDirection::UpDown), Direction::Up)
+                | (Tile::Split(SplitDirection::UpDown), Direction::Down) => {
+                    directions.push(d);
+                }
+
+                (Tile::Split(SplitDirection::UpDown), Direction::Left)
+                | (Tile::Split(SplitDirection::UpDown), Direction::Right) => {
+                    directions.push(Direction::Up);
+                    directions.push(Direction::Down);
+                }
+
+                (Tile::Split(SplitDirection::LeftRight), Direction::Up)
+                | (Tile::Split(SplitDirection::LeftRight), Direction::Down) => {
+                    directions.push(Direction::Left);
+                    directions.push(Direction::Right);
+                }
+
+                (Tile::Mirror(MirrorDirection::LeftDownRightUp), Direction::Left) => {
+                    directions.push(Direction::Down)
+                }
+
+                (Tile::Mirror(MirrorDirection::LeftUpRightDown), Direction::Left) => {
+                    directions.push(Direction::Up)
+                }
+
+                (Tile::Mirror(MirrorDirection::LeftDownRightUp), Direction::Right) => {
+                    directions.push(Direction::Up)
+                }
+                (Tile::Mirror(MirrorDirection::LeftUpRightDown), Direction::Right) => {
+                    directions.push(Direction::Down)
+                }
+
+                (Tile::Mirror(MirrorDirection::LeftDownRightUp), Direction::Up) => {
+                    directions.push(Direction::Right)
+                }
+                (Tile::Mirror(MirrorDirection::LeftUpRightDown), Direction::Up) => {
+                    directions.push(Direction::Left)
+                }
+
+                (Tile::Mirror(MirrorDirection::LeftDownRightUp), Direction::Down) => {
+                    directions.push(Direction::Left)
+                }
+                (Tile::Mirror(MirrorDirection::LeftUpRightDown), Direction::Down) => {
+                    directions.push(Direction::Right)
+                }
+            },
+        }
+
+        directions
+            .iter()
+            .filter_map(|d| self.move_towards(row, col, *d))
+            .collect()
+    }
+
     fn send_light(&mut self, row: usize, col: usize, d: Direction) {
         let mut targets = VecDeque::new();
         targets.push_back((row, col, d));
@@ -125,11 +214,12 @@ impl LightMap {
                 // if we already energized in this direction
                 continue;
             }
-
-            // move from this direction to the next
-
-            // FIXME: implement
+            self.beam_step(row, col, d);
         }
+    }
+
+    fn count_energy(&self) -> usize {
+        self.energy.iter().filter(|(_, b)| b.is_energized()).count()
     }
 }
 
@@ -178,18 +268,21 @@ fn parse_input(input: LocatedSpan<&str>) -> (usize, usize, Vec<(usize, usize, Ti
         .1
 }
 
-pub fn part1(input: &str) -> u32 {
+pub fn part1(input: &str) -> usize {
     let (rows, cols, m) = parse_input(input.into());
     let mut map = LightMap::new(&m, rows, cols);
-
     map.send_light(0, 0, Direction::Right);
-
-    todo!();
+    map.count_energy()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1(include_str!("../example.txt")), 46);
+    }
 
     #[test]
     fn test_input_parse() {
