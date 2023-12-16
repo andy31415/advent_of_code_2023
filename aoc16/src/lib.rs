@@ -1,4 +1,8 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Write,
+    path::Display, ops::RemAssign,
+};
 
 use itertools::Itertools;
 use nom::{
@@ -29,6 +33,17 @@ enum Tile {
     Mirror(MirrorDirection),
 }
 
+impl std::fmt::Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_char(match self {
+            Tile::Split(SplitDirection::LeftRight) => '-',
+            Tile::Split(SplitDirection::UpDown) => '|',
+            Tile::Mirror(MirrorDirection::LeftDownRightUp) => '\\',
+            Tile::Mirror(MirrorDirection::LeftUpRightDown) => '/',
+        })
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 enum Direction {
     Left,
@@ -46,6 +61,36 @@ struct Beam {
 }
 
 impl Beam {
+    fn display_char(&self) -> char {
+        let mut cnt = 0;
+        if self.left {
+            cnt += 1;
+        }
+        if self.right {
+            cnt += 1;
+        }
+        if self.up {
+            cnt += 1;
+        }
+        if self.down {
+            cnt += 1;
+        }
+
+        match cnt {
+            0 => '.',
+            1 if self.left => '←',
+            1 if self.right => '→',
+            1 if self.up => '↑',
+            1 if self.down => '↓',
+            2 if self.left && self.right => '⇆',
+            2 if self.up && self.down => '⇅',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            _ => unreachable!(),
+        }
+    }
+
     fn is_energized(&self) -> bool {
         self.left || self.right || self.up || self.down
     }
@@ -77,6 +122,31 @@ struct LightMap {
     // faster access for algorightms
     col_mirrors: HashMap<usize, HashMap<usize, Tile>>,
     row_mirrors: HashMap<usize, HashMap<usize, Tile>>,
+}
+
+impl std::fmt::Display for LightMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                match self.row_mirrors.get(&row).and_then(|h| h.get(&col)) {
+                    Some(t) => f.write_fmt(format_args!("{}", t))?,
+                    None => f.write_char('.')?,
+                }
+            }
+
+            f.write_str("    |    ")?;
+
+            for col in 0..self.cols {
+                f.write_char(match self.energy.get(&(row, col)) {
+                    Some(b) => b.display_char(),
+                    None => '.',
+                });
+            }
+
+            f.write_char('\n')?
+        }
+        Ok(())
+    }
 }
 
 impl LightMap {
