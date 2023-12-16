@@ -120,7 +120,6 @@ struct LightMap {
     cols: usize,
 
     // faster access for algorightms
-    col_mirrors: HashMap<usize, HashMap<usize, Tile>>,
     row_mirrors: HashMap<usize, HashMap<usize, Tile>>,
 }
 
@@ -151,7 +150,6 @@ impl std::fmt::Display for LightMap {
 
 impl LightMap {
     fn new(mirror_map: &Vec<(usize, usize, Tile)>, rows: usize, cols: usize) -> Self {
-        let mut col_mirrors: HashMap<usize, HashMap<usize, Tile, _>> = HashMap::new();
         let mut row_mirrors: HashMap<usize, HashMap<usize, Tile, _>> = HashMap::new();
 
         for (row, col, tile) in mirror_map {
@@ -163,19 +161,10 @@ impl LightMap {
                     row_mirrors.insert(*row, HashMap::from_iter([(*col, *tile)]));
                 }
             }
-            match col_mirrors.get_mut(col) {
-                Some(h) => {
-                    h.insert(*row, *tile);
-                }
-                None => {
-                    col_mirrors.insert(*row, HashMap::from_iter([(*row, *tile)]));
-                }
-            }
         }
 
         Self {
             energy: HashMap::new(),
-            col_mirrors,
             row_mirrors,
             rows,
             cols,
@@ -297,6 +286,25 @@ impl LightMap {
         }
     }
 
+    // Runs energy calculation but resets enegy map back
+    fn energy_for_beam(&mut self, row: usize, col: usize, d: Direction) -> usize {
+        self.energy.clear();
+        self.send_light(row, col, d);
+        let energy = self.count_energy();
+        self.energy.clear();
+        energy
+    }
+
+    // RETURNS: row, col, energy
+    fn max_energy(&mut self) -> (usize, usize, Direction, usize) {
+        (0..self.rows)
+            .map(|r| (r, 0, Direction::Right))
+            .chain((0..self.cols).map(|c| (0, c, Direction::Down)))
+            .map(|(r, c, d)| (r, c, d, self.energy_for_beam(r, c, d)))
+            .max_by(|a, b| a.3.cmp(&b.3))
+            .expect("Has value")
+    }
+
     fn count_energy(&self) -> usize {
         self.energy.iter().filter(|(_, b)| b.is_energized()).count()
     }
@@ -356,6 +364,12 @@ pub fn part1(input: &str) -> usize {
     map.count_energy()
 }
 
+pub fn part2(input: &str) -> usize {
+    let (rows, cols, m) = parse_input(input.into());
+    let mut map = LightMap::new(&m, rows, cols);
+    map.max_energy().3
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -363,6 +377,12 @@ mod tests {
     #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 46);
+    }
+
+
+    #[test_log::test]
+    fn test_part2() {
+        assert_eq!(part2(include_str!("../example.txt")),  51);
     }
 
     #[test]
