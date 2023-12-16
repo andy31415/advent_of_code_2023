@@ -13,6 +13,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_locate::LocatedSpan;
+use tracing::{info, trace};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 enum MirrorDirection {
@@ -37,8 +38,8 @@ impl std::fmt::Display for Tile {
         f.write_char(match self {
             Tile::Split(SplitDirection::LeftRight) => '-',
             Tile::Split(SplitDirection::UpDown) => '|',
-            Tile::Mirror(MirrorDirection::LeftDownRightUp) => '\\',
-            Tile::Mirror(MirrorDirection::LeftUpRightDown) => '/',
+            Tile::Mirror(MirrorDirection::LeftDownRightUp) => '/',
+            Tile::Mirror(MirrorDirection::LeftUpRightDown) => '\\',
         })
     }
 }
@@ -183,17 +184,22 @@ impl LightMap {
 
     fn move_towards(&self, row: usize, col: usize, d: Direction) -> Option<(usize, usize)> {
         match d {
-            Direction::Left if row > 0 => Some((row - 1, col)),
-            Direction::Right if row + 1 < self.rows => Some((row + 1, col)),
-            Direction::Up if col > 0 => Some((row, col - 1)),
-            Direction::Down if col + 1 < self.cols => Some((row, col + 1)),
+            Direction::Up if row > 0 => Some((row - 1, col)),
+            Direction::Down if row + 1 < self.rows => Some((row + 1, col)),
+            Direction::Left if col > 0 => Some((row, col - 1)),
+            Direction::Right if col + 1 < self.cols => Some((row, col + 1)),
             _ => None,
         }
     }
 
     /// Beams the light at the specified row, column and direction
     /// returns where the light goes from there
-    fn beam_step(&mut self, row: usize, col: usize, d: Direction) -> Vec<(usize, usize)> {
+    fn beam_step(
+        &mut self,
+        row: usize,
+        col: usize,
+        d: Direction,
+    ) -> Vec<(usize, usize, Direction)> {
         let map_element = self.row_mirrors.get(&row).and_then(|h| h.get(&col));
 
         // Energize current tile
@@ -265,7 +271,7 @@ impl LightMap {
 
         directions
             .iter()
-            .filter_map(|d| self.move_towards(row, col, *d))
+            .filter_map(|d| self.move_towards(row, col, *d).map(|(r, c)| (r, c, *d)))
             .collect()
     }
 
@@ -283,7 +289,11 @@ impl LightMap {
                 // if we already energized in this direction
                 continue;
             }
-            self.beam_step(row, col, d);
+
+            for s in self.beam_step(row, col, d) {
+                targets.push_back(s);
+            }
+            trace!("AFTER {:?}:\n{}", (row, col, d), &self);
         }
     }
 
@@ -298,11 +308,11 @@ fn input_row(input: LocatedSpan<&str>) -> IResult<LocatedSpan<&str>, (usize, Vec
         value(Some(Tile::Split(SplitDirection::LeftRight)), tag("-")),
         value(
             Some(Tile::Mirror(MirrorDirection::LeftDownRightUp)),
-            tag("\\"),
+            tag("/"),
         ),
         value(
             Some(Tile::Mirror(MirrorDirection::LeftUpRightDown)),
-            tag("/"),
+            tag("\\"),
         ),
         value(None, tag(".")),
     )))
@@ -340,7 +350,9 @@ fn parse_input(input: LocatedSpan<&str>) -> (usize, usize, Vec<(usize, usize, Ti
 pub fn part1(input: &str) -> usize {
     let (rows, cols, m) = parse_input(input.into());
     let mut map = LightMap::new(&m, rows, cols);
+    info!("BEFORE:\n{}", &map);
     map.send_light(0, 0, Direction::Right);
+    info!("AFTER:\n{}", &map);
     map.count_energy()
 }
 
@@ -348,7 +360,7 @@ pub fn part1(input: &str) -> usize {
 mod tests {
     use super::*;
 
-    #[test]
+    #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 46);
     }
@@ -362,12 +374,12 @@ mod tests {
                 10,
                 vec![
                     (0, 1, Tile::Split(SplitDirection::UpDown)),
-                    (0, 5, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+                    (0, 5, Tile::Mirror(MirrorDirection::LeftUpRightDown)),
                     (1, 0, Tile::Split(SplitDirection::UpDown)),
                     (1, 2, Tile::Split(SplitDirection::LeftRight)),
-                    (1, 4, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
-                    (2, 2, Tile::Mirror(MirrorDirection::LeftUpRightDown)),
-                    (2, 3, Tile::Mirror(MirrorDirection::LeftUpRightDown)),
+                    (1, 4, Tile::Mirror(MirrorDirection::LeftUpRightDown)),
+                    (2, 2, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+                    (2, 3, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
                     (2, 5, Tile::Split(SplitDirection::UpDown)),
                 ]
             )
@@ -382,7 +394,7 @@ mod tests {
                 10,
                 vec![
                     (1, Tile::Split(SplitDirection::UpDown)),
-                    (5, Tile::Mirror(MirrorDirection::LeftDownRightUp)),
+                    (5, Tile::Mirror(MirrorDirection::LeftUpRightDown)),
                 ]
             )
         );
