@@ -139,7 +139,7 @@ impl std::fmt::Display for LightMap {
                 f.write_char(match self.energy.get(&(row, col)) {
                     Some(b) => b.display_char(),
                     None => '.',
-                });
+                })?;
             }
 
             f.write_char('\n')?
