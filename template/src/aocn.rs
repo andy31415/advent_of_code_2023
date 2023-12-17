@@ -7,7 +7,9 @@ fn main() {
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
 
-    println!("Part 1:");
+    let s1 = {{project-name}}::part1(include_str!("../input.txt"));
+    println!("Part 1: {}", s1);
 
-    println!("Part 2:");
+    let s2 = {{project-name}}::part2(include_str!("../input.txt"));
+    println!("Part 2: {}", s2);
 }
