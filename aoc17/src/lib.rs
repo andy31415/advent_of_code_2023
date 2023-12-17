@@ -120,11 +120,7 @@ impl Solver {
         );
 
         let solution = result.expect("Dijkstra finds a solution");
-
         info!("Shortest path:\n{:#?}", solution);
-
-        // TODO: final cost is NOT expected
-
         solution.1
     }
 }
