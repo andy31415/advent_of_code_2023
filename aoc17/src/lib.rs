@@ -100,17 +100,17 @@ impl Solver {
             let mut next = self.next((pos.row, pos.col), direction);
 
             if direction != pos.from_direction || !self.is_inside((pos.row, pos.col)) {
-               // starting a new direction, go deep!
-               for _ in 1..self.min_len {
-                   next = next.and_then(|(r, c, s)| {
-                       self.next((r, c), direction)
-                           .map(|(r, c, s2)| (r, c, s + s2))
-                   });
-               }
-               from_len = self.min_len;
+                // starting a new direction, go deep!
+                for _ in 1..self.min_len {
+                    next = next.and_then(|(r, c, s)| {
+                        self.next((r, c), direction)
+                            .map(|(r, c, s2)| (r, c, s + s2))
+                    });
+                }
+                from_len = self.min_len;
             } else {
-               // continuing a single direction
-               from_len = pos.from_len + 1
+                // continuing a single direction
+                from_len = pos.from_len + 1
             }
 
             let next = match next {
@@ -257,13 +257,19 @@ mod tests {
 
     #[test_log::test]
     fn test_part2() {
-        assert_eq!(part2("
+        assert_eq!(
+            part2(
+                "
 111111111111
 999999999991
 999999999991
 999999999991
 999999999991
-        ".trim()), 71);
+        "
+                .trim()
+            ),
+            71
+        );
         assert_eq!(part2(include_str!("../example.txt")), 94);
     }
 }
