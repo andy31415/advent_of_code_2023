@@ -1,36 +1,51 @@
-use std::panic::Location;
-
 use ndarray::{Array, Array2};
 use pathfinding::directed::dijkstra::dijkstra;
 use tracing::{info, trace};
 
-/// in what direction are you NOT allowed to go
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
-enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
+enum Allow {
+    Any,
+    LeftRight,
+    UpDown,
 }
 
-impl Direction {
-    fn invert(&self) -> Direction {
-        match self {
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
-            Direction::Up => Direction::Down,
-            Direction::Down => Direction::Up,
-        }
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
+struct Location {
+    row: usize,
+    col: usize,
+    allow: Allow,
+}
+
+impl Location {
+    fn position(&self) -> (usize, usize) {
+        (self.row, self.col)
     }
-}
+    
+    
+    // Try to move current location
+    fn constrained_move(&self, delta: (i32, i32), max: (usize, usize)) -> Option<Location> {
+        let target_row = delta.0 + (self.row as i32);
+        let target_col = delta.1 + (self.col as i32);
 
-/// A location in a solution
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
-struct SolveLocation {
-    from_direction: Direction,
-    from_len: usize,
-    row: i32,
-    col: i32,
+        let allow = match self.allow {
+            Allow::Any if delta.0 == 0 => Allow::UpDown,
+            Allow::Any if delta.1 == 0 => Allow::LeftRight,
+            Allow::UpDown if delta.1 == 0 => Allow::LeftRight,
+            Allow::LeftRight if delta.0 == 0 => Allow::UpDown,
+            _ => return None,
+        };
+        
+
+        (target_row >= 0
+            && target_col >= 0
+            && (target_row as usize) < max.0
+            && (target_col as usize) < max.1)
+            .then(|| Location {
+                row: target_row as usize,
+                col: target_col as usize,
+                allow,
+            })
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -40,107 +55,65 @@ struct Solver {
     max_len: usize,
 }
 
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
-struct OutputStep {
-    row: i32,
-    col: i32,
-    weight: usize,
-    from_len: usize,
-}
-
 impl Solver {
-    fn is_inside(&self, pos: (i32, i32)) -> bool {
-        let d = self.values.dim();
-        pos.0 >= 0 && pos.1 >= 0 && (pos.0 as usize) < d.0 && (pos.1 as usize) < d.1
-    }
-
-    // Return the next position in this direction
-    fn next(&self, pos: (i32, i32), direction: Direction) -> Option<(i32, i32, usize)> {
-        let delta = match direction {
-            Direction::Left => (0, -1),
-            Direction::Right => (0, 1),
-            Direction::Up => (-1, 0),
-            Direction::Down => (1, 0),
-        };
-        let next = (pos.0 + delta.0, pos.1 + delta.1);
-        if self.is_inside(next) {
-            Some((
-                next.0,
-                next.1,
-                *self
-                    .values
-                    .get((next.0 as usize, next.1 as usize))
-                    .expect("inside") as usize,
-            ))
-        } else {
-            None
-        }
-    }
-
-    fn successors(&self, pos: &SolveLocation) -> Vec<(SolveLocation, usize)> {
-        let mut result = Vec::with_capacity(2);
-
-        for direction in [
-            Direction::Left,
-            Direction::Right,
-            Direction::Up,
-            Direction::Down,
-        ] {
-            if direction == pos.from_direction.invert() {
-                // may not go back
-                continue;
-            }
-
-            if pos.from_direction == direction && pos.from_len >= self.max_len {
-                // may not go too deep
-                continue;
-            }
-
-            let mut from_len = self.min_len;
-            let mut next = self.next((pos.row, pos.col), direction);
-
-            if direction != pos.from_direction || !self.is_inside((pos.row, pos.col)) {
-                // starting a new direction, go deep!
-                for _ in 1..self.min_len {
-                    next = next.and_then(|(r, c, s)| {
-                        self.next((r, c), direction)
-                            .map(|(r, c, s2)| (r, c, s + s2))
-                    });
+    
+    /// Computes the weight between pos and other,
+    /// NOT including pos weight, but INCLUDING other weight
+    fn weight(&self, pos: &Location, mut other: Location) -> usize {
+        assert!(pos.row == other.row || pos.col == other.col);
+        let mut total = 0;
+        
+        while other.position() != pos.position() {
+            total += *self.values.get(other.position()).expect("valid position in map") as usize;
+            if pos.row == other.row {
+                if pos.col > other.col {
+                    other.col += 1;
+                } else {
+                    other.col -= 1;
+                    
+                }
+            } else if pos.col == other.col {
+                if pos.row > other.row {
+                    other.row += 1;
+                } else {
+                    other.row -= 1;
+                    
                 }
             } else {
-                // continuing a single direction
-                from_len = pos.from_len + 1
+                unreachable!();
             }
 
-            let next = match next {
-                Some(v) => v,
-                None => continue,
-            };
-
-            // Allow moving foward
-            let loc = SolveLocation {
-                row: next.0,
-                col: next.1,
-                from_direction: direction,
-                from_len,
-            };
-
-            trace!(
-                "For [{:?} + {:?}]: {:?} weight {}",
-                pos,
-                direction,
-                &loc,
-                next.2
-            );
-            result.push((loc, next.2))
         }
-        result
+
+        total
+    }
+    
+    // Return available positions from the given location
+    //
+    // retunrs the weight INCLUDING the end, but NOT including the start
+    fn successors(&self, pos: &Location) -> Vec<(Location, usize)> {
+        let edge = self.values.dim();
+        let deltas = (self.min_len..=self.max_len)
+            .flat_map(|v| {
+                [
+                    (0, -(v as i32)),
+                    (0, v as i32),
+                    (-(v as i32), 0),
+                    (v as i32, 0),
+                ]
+            })
+            .filter_map(|c| pos.constrained_move(c, edge))
+            .map(|p|{(p, self.weight(pos, p))})
+            .collect();
+ 
+        trace!("Deltas from {:?} -> {:?}", pos, deltas);
+
+        deltas
     }
 
-    fn shortest_path(&self, pos: SolveLocation, goal: (usize, usize)) -> usize {
-        let (target_row, target_col) = (goal.0 as i32, goal.1 as i32);
-
-        info!("Shortest path compute...");
+    fn shortest_path_to_end(&self, pos: Location) -> usize {
+        let d = self.values.dim();
+        let (target_row, target_col) = (d.0 - 1, d.1 - 1);
 
         // start with a particular location and try to reach the goal
         let result = dijkstra(
@@ -153,17 +126,8 @@ impl Solver {
 
         info!("Shortest path:\n{:#?}", solution);
 
-        let cost = solution
-            .0
-            .iter()
-            .map(|l| {
-                *self
-                    .values
-                    .get((l.row as usize, l.col as usize))
-                    .expect("valid position")
-            })
-            .sum::<i32>() as usize;
-        info!("Actual cost: {} vs {}", cost, solution.1);
+        // TODO: final cost is NOT expected
+
         solution.1
     }
 }
@@ -200,18 +164,11 @@ pub fn part1(input: &str) -> usize {
         max_len: 3,
     };
 
-    let d = solver.values.dim();
-    let goal = (d.0 - 1, d.1 - 1);
-
-    solver.shortest_path(
-        SolveLocation {
-            row: 0,
-            col: 0,
-            from_direction: Direction::Up,
-            from_len: 0,
-        },
-        goal,
-    )
+    solver.shortest_path_to_end(Location {
+        row: 0,
+        col: 0,
+        allow: Allow::Any,
+    })
 }
 
 pub fn part2(input: &str) -> usize {
@@ -221,18 +178,11 @@ pub fn part2(input: &str) -> usize {
         max_len: 10,
     };
 
-    let d = solver.values.dim();
-    let goal = (d.0 - 1, d.1 - 1);
-
-    solver.shortest_path(
-        SolveLocation {
-            row: 0,
-            col: 0,
-            from_direction: Direction::Up,
-            from_len: 0,
-        },
-        goal,
-    )
+    solver.shortest_path_to_end(Location {
+        row: 0,
+        col: 0,
+        allow: Allow::Any,
+    })
 }
 
 #[cfg(test)]
