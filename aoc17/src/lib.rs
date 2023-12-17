@@ -20,8 +20,7 @@ impl Location {
     fn position(&self) -> (usize, usize) {
         (self.row, self.col)
     }
-    
-    
+
     // Try to move current location
     fn constrained_move(&self, delta: (i32, i32), max: (usize, usize)) -> Option<Location> {
         let target_row = delta.0 + (self.row as i32);
@@ -34,7 +33,6 @@ impl Location {
             Allow::LeftRight if delta.0 == 0 => Allow::UpDown,
             _ => return None,
         };
-        
 
         (target_row >= 0
             && target_col >= 0
@@ -56,38 +54,37 @@ struct Solver {
 }
 
 impl Solver {
-    
     /// Computes the weight between pos and other,
     /// NOT including pos weight, but INCLUDING other weight
     fn weight(&self, pos: &Location, mut other: Location) -> usize {
         assert!(pos.row == other.row || pos.col == other.col);
         let mut total = 0;
-        
+
         while other.position() != pos.position() {
-            total += *self.values.get(other.position()).expect("valid position in map") as usize;
+            total += *self
+                .values
+                .get(other.position())
+                .expect("valid position in map") as usize;
             if pos.row == other.row {
                 if pos.col > other.col {
                     other.col += 1;
                 } else {
                     other.col -= 1;
-                    
                 }
             } else if pos.col == other.col {
                 if pos.row > other.row {
                     other.row += 1;
                 } else {
                     other.row -= 1;
-                    
                 }
             } else {
                 unreachable!();
             }
-
         }
 
         total
     }
-    
+
     // Return available positions from the given location
     //
     // retunrs the weight INCLUDING the end, but NOT including the start
@@ -103,9 +100,9 @@ impl Solver {
                 ]
             })
             .filter_map(|c| pos.constrained_move(c, edge))
-            .map(|p|{(p, self.weight(pos, p))})
+            .map(|p| (p, self.weight(pos, p)))
             .collect();
- 
+
         trace!("Deltas from {:?} -> {:?}", pos, deltas);
 
         deltas
