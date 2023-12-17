@@ -36,6 +36,8 @@ struct SolveLocation {
 #[derive(Debug, PartialEq)]
 struct Solver {
     values: Array2<i32>,
+    min_len: usize,
+    max_len: usize,
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
@@ -89,22 +91,32 @@ impl Solver {
                 continue;
             }
 
-            if pos.from_direction == direction && pos.from_len >= 3 {
+            if pos.from_direction == direction && pos.from_len >= self.max_len {
                 // may not go too deep
                 continue;
             }
 
-            let next = match self.next((pos.row, pos.col), direction) {
-                None => continue,
-                Some(v) => v,
-            };
+            let mut from_len = self.min_len;
+            let mut next = self.next((pos.row, pos.col), direction);
 
-            let mut from_len = 1;
-            if (pos.row == 0) && (pos.col == 0) {
-                from_len = 2; // extra cost for start
-            } else if direction == pos.from_direction {
-                from_len = pos.from_len + 1;
+            if direction != pos.from_direction || !self.is_inside((pos.row, pos.col)) {
+               // starting a new direction, go deep!
+               for _ in 1..self.min_len {
+                   next = next.and_then(|(r, c, s)| {
+                       self.next((r, c), direction)
+                           .map(|(r, c, s2)| (r, c, s + s2))
+                   });
+               }
+               from_len = self.min_len;
+            } else {
+               // continuing a single direction
+               from_len = pos.from_len + 1
             }
+
+            let next = match next {
+                Some(v) => v,
+                None => continue,
+            };
 
             // Allow moving foward
             let loc = SolveLocation {
@@ -185,6 +197,8 @@ fn parse_input(input: &str) -> Array2<i32> {
 pub fn part1(input: &str) -> usize {
     let solver = Solver {
         values: parse_input(input),
+        min_len: 1,
+        max_len: 3,
     };
 
     let d = solver.values.dim();
@@ -201,9 +215,25 @@ pub fn part1(input: &str) -> usize {
     )
 }
 
-pub fn part2(_input: &str) -> usize {
-    // TODO: implement
-    0
+pub fn part2(input: &str) -> usize {
+    let solver = Solver {
+        values: parse_input(input),
+        min_len: 4,
+        max_len: 10,
+    };
+
+    let d = solver.values.dim();
+    let goal = (d.0 - 1, d.1 - 1);
+
+    solver.shortest_path(
+        SolveLocation {
+            row: 0,
+            col: 0,
+            from_direction: Direction::Up,
+            from_len: 0,
+        },
+        goal,
+    )
 }
 
 #[cfg(test)]
@@ -222,24 +252,18 @@ mod tests {
 
     #[test_log::test]
     fn test_part1() {
-        /*
-                assert_eq!(
-                    part1(
-                        "
-        2121
-        9921
-        9913
-                "
-                        .trim()
-                    ),
-                    11
-                );
-                */
         assert_eq!(part1(include_str!("../example.txt")), 102);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2("
+111111111111
+999999999991
+999999999991
+999999999991
+999999999991
+        ".trim()), 71);
+        assert_eq!(part2(include_str!("../example.txt")), 94);
     }
 }
