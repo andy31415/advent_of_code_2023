@@ -25,14 +25,16 @@ fn parse_input(input: &str) -> Array2<usize> {
         .collect::<Vec<_>>();
 
     let result = Array::from_shape_vec((rows, cols), data).expect("valid input");
-    
+
     trace!("Input:\n{:#?}", result);
-    
+
     result
 }
 
 pub fn part1(input: &str) -> usize {
-    let solver = Solver{values: parse_input(input)};
+    let solver = Solver {
+        values: parse_input(input),
+    };
     // TODO: implement
     0
 }
