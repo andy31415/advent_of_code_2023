@@ -146,7 +146,8 @@ impl Solver {
             .0
             .iter()
             .map(|l| {
-                *self.values
+                *self
+                    .values
                     .get((l.row as usize, l.col as usize))
                     .expect("valid position")
             })
