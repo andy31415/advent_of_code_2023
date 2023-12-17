@@ -107,7 +107,6 @@ impl Solver {
                             .map(|(r, c, s2)| (r, c, s + s2))
                     });
                 }
-                from_len = self.min_len;
             } else {
                 // continuing a single direction
                 from_len = pos.from_len + 1
