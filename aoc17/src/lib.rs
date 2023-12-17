@@ -13,10 +13,22 @@ enum Direction {
     Down,
 }
 
+impl Direction {
+    fn invert(&self) -> Direction {
+        match self {
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+        }
+    }
+}
+
 /// A location in a solution
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
 struct SolveLocation {
-    deny: Direction,
+    from_direction: Direction,
+    from_len: usize,
     row: i32,
     col: i32,
 }
@@ -24,6 +36,14 @@ struct SolveLocation {
 #[derive(Debug, PartialEq)]
 struct Solver {
     values: Array2<i32>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Copy)]
+struct OutputStep {
+    row: i32,
+    col: i32,
+    weight: usize,
+    from_len: usize,
 }
 
 impl Solver {
@@ -56,7 +76,7 @@ impl Solver {
     }
 
     fn successors(&self, pos: &SolveLocation) -> Vec<(SolveLocation, usize)> {
-        let mut result = Vec::with_capacity(9);
+        let mut result = Vec::with_capacity(2);
 
         for direction in [
             Direction::Left,
@@ -64,39 +84,44 @@ impl Solver {
             Direction::Up,
             Direction::Down,
         ] {
-            if pos.deny == direction {
+            if direction == pos.from_direction.invert() {
+                // may not go back
                 continue;
             }
 
-            let choices = [0, 1, 2]
-                .iter()
-                .scan(Some((pos.row, pos.col, 0)), |state, _| {
-                    let state = match state {
-                        Some(v) => v,
-                        None => return None,
-                    };
-                    let next = self
-                        .next((state.0, state.1), direction)
-                        .map(|(r, c, s)| (r, c, state.2 + s));
-                    if let Some(v) = next {
-                        *state = v;
-                    }
-                    next
-                })
-                .collect::<Vec<_>>();
-
-            trace!("Choices [{:?} + {:?}]: {:?}", pos, direction, &choices);
-
-            for c in choices {
-                result.push((
-                    SolveLocation {
-                        deny: direction,
-                        row: c.0,
-                        col: c.1,
-                    },
-                    c.2,
-                ))
+            if pos.from_direction == direction && pos.from_len >= 3 {
+                // may not go too deep
+                continue;
             }
+
+            let next = match self.next((pos.row, pos.col), direction) {
+                None => continue,
+                Some(v) => v,
+            };
+
+            let mut from_len = 1;
+            if (pos.row == 0) && (pos.col == 0) {
+                from_len = 2; // extra cost for start
+            } else if direction == pos.from_direction {
+                from_len = pos.from_len + 1;
+            }
+
+            // Allow moving foward
+            let loc = SolveLocation {
+                row: next.0,
+                col: next.1,
+                from_direction: direction,
+                from_len,
+            };
+
+            trace!(
+                "For [{:?} + {:?}]: {:?} weight {}",
+                pos,
+                direction,
+                &loc,
+                next.2
+            );
+            result.push((loc, next.2))
         }
         result
     }
@@ -113,7 +138,21 @@ impl Solver {
             |p| (p.row == target_row && p.col == target_col),
         );
 
-        result.expect("Dijkstra finds a solution").1
+        let solution = result.expect("Dijkstra finds a solution");
+
+        info!("Shortest path:\n{:#?}", solution);
+
+        let cost = solution
+            .0
+            .iter()
+            .map(|l| {
+                *self.values
+                    .get((l.row as usize, l.col as usize))
+                    .expect("valid position")
+            })
+            .sum::<i32>() as usize;
+        info!("Actual cost: {} vs {}", cost, solution.1);
+        solution.1
     }
 }
 
@@ -137,7 +176,7 @@ fn parse_input(input: &str) -> Array2<i32> {
 
     let result = Array::from_shape_vec((rows, cols), data).expect("valid input");
 
-    trace!("Input:\n{:#?}", result);
+    info!("Input:\n{:#?}", result);
 
     result
 }
@@ -150,24 +189,15 @@ pub fn part1(input: &str) -> usize {
     let d = solver.values.dim();
     let goal = (d.0 - 1, d.1 - 1);
 
-    let a = solver.shortest_path(
+    solver.shortest_path(
         SolveLocation {
-            deny: Direction::Up,
-            row: -1,
-            col: 0,
-        },
-        goal,
-    );
-    let b = solver.shortest_path(
-        SolveLocation {
-            deny: Direction::Left,
             row: 0,
-            col: -1,
+            col: 0,
+            from_direction: Direction::Up,
+            from_len: 0,
         },
         goal,
-    );
-
-    *[a, b].iter().min().expect("have values")
+    )
 }
 
 pub fn part2(_input: &str) -> usize {
@@ -191,6 +221,19 @@ mod tests {
 
     #[test_log::test]
     fn test_part1() {
+        /*
+                assert_eq!(
+                    part1(
+                        "
+        2121
+        9921
+        9913
+                "
+                        .trim()
+                    ),
+                    11
+                );
+                */
         assert_eq!(part1(include_str!("../example.txt")), 102);
     }
 
