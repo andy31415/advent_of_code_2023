@@ -1,12 +1,54 @@
+use std::{ops::Range, iter};
+
 use ndarray::{Array, Array2};
+use pathfinding::directed::dijkstra::dijkstra;
 use tracing::trace;
+
+/// in what direction are you NOT allowed to go
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+/// A location in a solution
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+struct SolveLocation {
+    deny: Direction,
+    row: i32,
+    col: i32,
+}
 
 #[derive(Debug, PartialEq)]
 struct Solver {
-    values: Array2<usize>,
+    values: Array2<i32>,
 }
 
-fn parse_input(input: &str) -> Array2<usize> {
+impl Solver {
+    
+    fn successors(&self, pos: &SolveLocation) -> Vec<(SolveLocation, usize)> {
+        // TODO: grab weight + solve
+        // 
+        vec![]
+    }
+    
+    fn shortest_path(&self, pos: SolveLocation, goal: (usize, usize)) -> usize {
+        let (target_row, target_col) = (goal.0 as i32, goal.1 as i32);
+
+        // start with a particular location and try to reach the goal
+        let result = dijkstra(
+            &pos,
+            |p| self.successors(p),
+            |p| (p.row == target_row && p.col == target_col)
+        );
+        
+        result.expect("Dijkstra finds a solution").1
+    }
+}
+
+fn parse_input(input: &str) -> Array2<i32> {
     let lines = input.split('\n').collect::<Vec<_>>();
 
     let rows = lines.len();
@@ -18,7 +60,7 @@ fn parse_input(input: &str) -> Array2<usize> {
             l.chars().into_iter().map(|c| {
                 [c].iter()
                     .collect::<String>()
-                    .parse::<usize>()
+                    .parse::<i32>()
                     .expect("valid input")
             })
         })
@@ -35,8 +77,11 @@ pub fn part1(input: &str) -> usize {
     let solver = Solver {
         values: parse_input(input),
     };
-    // TODO: implement
-    0
+
+    let a = solver.shortest_path(SolveLocation{ deny: Direction::Up, row: -1, col: 0}, solver.values.dim());
+    let b = solver.shortest_path(SolveLocation{ deny: Direction::Left, row: 0, col: -1}, solver.values.dim());
+    
+    *[a, b].iter().min().expect("have values")
 }
 
 pub fn part2(input: &str) -> usize {
