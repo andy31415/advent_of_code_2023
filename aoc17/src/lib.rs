@@ -98,9 +98,6 @@ impl Solver {
                 ))
             }
         }
-
-        // TODO: grab weight + solve
-        //
         result
     }
 
