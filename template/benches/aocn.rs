@@ -7,7 +7,7 @@ fn main() {
 
 #[divan::bench]
 fn part1() {
-    {{project-name}}::part1(include_str!("../input.txt")));
+    {{project-name}}::part1(black_box(include_str!("../input.txt")));
 }
 
 #[divan::bench]
