@@ -1,10 +1,9 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fmt::{Display, Write},
     ops::Add,
 };
 
-use glam::IVec2;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -18,7 +17,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing::{info, instrument};
+use tracing::{info, instrument, trace};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Direction {
@@ -55,21 +54,21 @@ struct DigInstruction<'a> {
     color: &'a str,
 }
 
-struct DigMap {
+struct DigMap<'a> {
     // locations of holes
-    holes: BTreeSet<(i32, i32)>,
-    row_range: (i32, i32), // upper range is exclusive
-    col_range: (i32, i32), // upper range is exclusive
+    holes: BTreeMap<(i32, i32), &'a str>, // Color
+    row_range: (i32, i32),                // upper range is exclusive
+    col_range: (i32, i32),                // upper range is exclusive
 
     // digger position
     digger_pos: (i32, i32),
 }
 
-impl DigMap {
+impl<'a> DigMap<'a> {
     fn new() -> Self {
-        let mut holes = BTreeSet::new();
+        let mut holes = BTreeMap::new();
         let digger_pos = (0, 0);
-        holes.insert(digger_pos);
+        holes.insert(digger_pos, "");
 
         Self {
             holes,
@@ -79,11 +78,11 @@ impl DigMap {
         }
     }
 
-    fn perform_instructions(&mut self, instructions: &[DigInstruction]) {
+    fn perform_instructions(&mut self, instructions: &[DigInstruction<'a>]) {
         for instruction in instructions {
             for _ in 0..instruction.distance {
                 self.digger_pos = instruction.direction + self.digger_pos;
-                self.holes.insert(self.digger_pos);
+                self.holes.insert(self.digger_pos, instruction.color);
 
                 if self.row_range.0 > self.digger_pos.0 {
                     self.row_range.0 = self.digger_pos.0;
@@ -101,13 +100,41 @@ impl DigMap {
             }
         }
     }
+
+    fn dug_out_depth(&self) -> usize {
+        let mut total = 0;
+        for row in self.row_range.0..self.row_range.1 {
+            // Assume no circles, since it is perimeter only
+            let mut low = None;
+            let mut high = None;
+            for col in self.col_range.0..self.col_range.1 {
+                if !self.holes.contains_key(&(row, col)) {
+                    continue;
+                }
+
+                if low.is_none() {
+                    low = Some(col);
+                }
+                high = Some(col);
+            }
+
+            total += match (low, high) {
+                (Some(l), Some(h)) => (h - l + 1) as usize,
+                _ => panic!("no dig data"),
+            };
+
+            trace!("After row {}: {}", row, total);
+        }
+
+        total
+    }
 }
 
-impl Display for DigMap {
+impl<'a> Display for DigMap<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in self.row_range.0..self.row_range.1 {
             for col in self.col_range.0..self.col_range.1 {
-                f.write_char(if self.holes.contains(&(row, col)) {
+                f.write_char(if self.holes.contains_key(&(row, col)) {
                     '#'
                 } else {
                     '.'
@@ -155,11 +182,9 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
 pub fn part1(input: &str) -> usize {
     let mut map = DigMap::new();
     map.perform_instructions(&parse_input(input));
-    
+
     info!("DigMap:\n{}", &map);
-    
-    // TODO: implement
-    0
+    map.dug_out_depth()
 }
 
 pub fn part2(input: &str) -> usize {
