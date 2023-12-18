@@ -386,7 +386,6 @@ impl DigMap2 {
     }
 
     fn vertical_with_end_at(&self, p: Point) -> Line {
-        trace!("Searching vertical ending at {:?}", p);
         *self
             .lines
             .iter()
@@ -430,12 +429,7 @@ impl DigMap2 {
         let v_left = self.vertical_with_end_at(top_left);
         let v_right = self.vertical_with_end_at(h.end());
 
-        trace!(
-            "BORDERS:\n  H:  {:?}\n  VL: {:?}\n  VR: {:?}",
-            h,
-            v_left,
-            v_right
-        );
+        //trace!("BORDERS:\n  H:  {:?}\n  VL: {:?}\n  VR: {:?}", h, v_left, v_right);
         assert!(v_left.start() == h.start());
         assert!(v_right.start() == h.end());
         assert!(v_left != v_right);
@@ -459,10 +453,11 @@ impl DigMap2 {
                 let lower_h_right = self.horizontal_with_end_at(v_right.end());
                 
                 if lower_h_left == lower_h_right {
-                    trace!("Final square!");
                     self.lines.remove(&lower_h_left);
                     return Some(size_removed);
                 }
+                // do not consider lower row, that is adjusted
+                size_removed -= h.distance();
 
                 // non-final rectangle. Need to merge the lines
                 // Cases
@@ -477,12 +472,12 @@ impl DigMap2 {
                 let left_start = if lower_h_left.start().1 < v_left.col() {
                     lower_h_left.start()
                 } else {
-                    size_removed += lower_h_left.distance();
+                    size_removed += lower_h_left.distance() - 1;
                     lower_h_left.end()
                 };
                 
                 let right_end = if lower_h_right.start().1 < v_right.col() {
-                    size_removed += lower_h_right.distance();
+                    size_removed += lower_h_right.distance() - 1;
                     lower_h_right.start()
                 } else {
                     lower_h_right.end()
@@ -524,18 +519,14 @@ impl DigMap2 {
             std::cmp::Ordering::Greater => {
                 // right side is shorter
                 let h_low = self.horizontal_with_end_at(v_right.end());
-                trace!("HLOW: {:?}", h_low);
                 let other_v = self.vertical_with_end_inside(h_low);
                 self.lines.remove(&h_low);
-                
-                trace!("OTHERV: {:?}", other_v);
                 
                 // add them back:
                 //   - new top horizontal
                 //   - shorter right-side vertical
                 let shorter_left = v_left.with_start_moved_to((h_low.row(), v_left.col()));
                 self.lines.insert(shorter_left);
-                trace!("SHORT_LEFT: {:?}", shorter_left);
                 size_removed += rectangle_area(top_left, (h_low.row(), v_right.col()));
                 size_removed -= h.distance(); // do not consider lower row, that is adjusted
 
@@ -544,7 +535,6 @@ impl DigMap2 {
                 let updated_h = h_low
                     .with_end_moved_to((h_low.start().0, other_v.start().1))
                     .with_start_moved_to((h_low.start().0, v_left.start().1));
-                trace!("UPDATED_H: {:?}", shorter_left);
 
                 // adjust if line length is decreased
                 if updated_h.end().1 < h_low.end().1 {
