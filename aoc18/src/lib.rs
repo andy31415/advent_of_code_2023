@@ -397,8 +397,7 @@ impl DigMap2 {
         *self
             .lines
             .iter()
-            .find(|l| l.is_vertical() && (input.contains(l.start())
-                                          || input.contains(l.end())))
+            .find(|l| l.is_vertical() && (input.contains(l.start()) || input.contains(l.end())))
             .expect("Find line with start inside")
     }
 
@@ -451,7 +450,7 @@ impl DigMap2 {
 
                 let lower_h_left = self.horizontal_with_end_at(v_left.end());
                 let lower_h_right = self.horizontal_with_end_at(v_right.end());
-                
+
                 if lower_h_left == lower_h_right {
                     self.lines.remove(&lower_h_left);
                     return Some(size_removed);
@@ -465,27 +464,30 @@ impl DigMap2 {
                 //    #  #    |  #    #   |   #    # | #     #
                 //    #  #    |  #    #   |   #    # | #     #
                 //  ###  ###  |  ###  ### | ###  ### | ### ###
-                
+
                 self.lines.remove(&lower_h_left);
                 self.lines.remove(&lower_h_right);
-                
+
                 let left_start = if lower_h_left.start().1 < v_left.col() {
                     lower_h_left.start()
                 } else {
                     size_removed += lower_h_left.distance() - 1;
                     lower_h_left.end()
                 };
-                
+
                 let right_end = if lower_h_right.start().1 < v_right.col() {
                     size_removed += lower_h_right.distance() - 1;
                     lower_h_right.start()
                 } else {
                     lower_h_right.end()
                 };
-                
-                let new_line = Line {tl: left_start, br: right_end};
+
+                let new_line = Line {
+                    tl: left_start,
+                    br: right_end,
+                };
                 assert!(new_line.is_horizontal());
-                
+
                 self.lines.insert(new_line);
             }
             std::cmp::Ordering::Less => {
@@ -515,13 +517,13 @@ impl DigMap2 {
                 }
 
                 self.lines.insert(updated_h);
-            },
+            }
             std::cmp::Ordering::Greater => {
                 // right side is shorter
                 let h_low = self.horizontal_with_end_at(v_right.end());
                 let other_v = self.vertical_with_end_inside(h_low);
                 self.lines.remove(&h_low);
-                
+
                 // add them back:
                 //   - new top horizontal
                 //   - shorter right-side vertical
@@ -540,7 +542,7 @@ impl DigMap2 {
                 if updated_h.end().1 < h_low.end().1 {
                     size_removed += (h_low.end().1 - updated_h.end().1) as usize;
                 }
-                    
+
                 // since this line remains, keep the distance
                 self.lines.insert(updated_h);
             }
