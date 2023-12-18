@@ -25,7 +25,7 @@ enum Direction {
 }
 
 impl Direction {
-    fn tuple(&self) -> (i32, i32) {
+    fn tuple(&self) -> (i64, i64) {
         match self {
             Direction::Up => (-1, 0),
             Direction::Down => (1, 0),
@@ -35,10 +35,10 @@ impl Direction {
     }
 }
 
-impl Add<(i32, i32)> for Direction {
-    type Output = (i32, i32);
+impl Add<(i64, i64)> for Direction {
+    type Output = (i64, i64);
 
-    fn add(self, rhs: (i32, i32)) -> Self::Output {
+    fn add(self, rhs: (i64, i64)) -> Self::Output {
         let t = self.tuple();
         (rhs.0 + t.0, rhs.1 + t.1)
     }
@@ -47,18 +47,31 @@ impl Add<(i32, i32)> for Direction {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct DigInstruction<'a> {
     direction: Direction,
-    distance: i32, // always positive, but easier math
+    distance: i64, // always positive, but easier math
     color: &'a str,
 }
 
+impl<'a> DigInstruction<'a> {
+    fn color_to_distance(&self) -> Self {
+        Self {
+            direction: self.direction,
+            distance: i64::from_str_radix(self.color, 16).expect("valid"),
+            color: "",
+
+        }
+    }
+}
+
+
+
 struct DigMap<'a> {
     // locations of holes
-    holes: BTreeMap<(i32, i32), &'a str>, // Color
-    row_range: (i32, i32),                // upper range is exclusive
-    col_range: (i32, i32),                // upper range is exclusive
+    holes: BTreeMap<(i64, i64), &'a str>, // Color
+    row_range: (i64, i64),                // upper range is exclusive
+    col_range: (i64, i64),                // upper range is exclusive
 
     // digger position
-    digger_pos: (i32, i32),
+    digger_pos: (i64, i64),
 }
 
 impl<'a> DigMap<'a> {
@@ -98,11 +111,11 @@ impl<'a> DigMap<'a> {
         }
     }
     
-    fn hole_at(&self, p: (i32, i32)) -> bool {
+    fn hole_at(&self, p: (i64, i64)) -> bool {
         return self.holes.contains_key(&p)
     }
     
-    fn find_inside(&self) -> (i32, i32) {
+    fn find_inside(&self) -> (i64, i64) {
        for row in self.row_range.0..self.row_range.1 {
            for col in self.col_range.0..self.col_range.1 {
                let p = (row, col);
@@ -171,7 +184,7 @@ fn instruction(input: &str) -> IResult<&str, DigInstruction> {
             value(Direction::Right, tag("R")),
         ))
         .terminated(tag(" ")),
-        nom::character::complete::i32.terminated(tag(" ")),
+        nom::character::complete::i64.terminated(tag(" ")),
         delimited(
             tag("(#"),
             take_while1(|c: char| c.is_alphanumeric()),
