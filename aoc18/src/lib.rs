@@ -533,7 +533,6 @@ pub fn part1_b(input: &str) -> u64 {
 pub fn part2(input: &str) -> usize {
     let mut adjusted = Vec::new();
     for i in parse_input(input) {
-        eprintln!("A: {:?}", i);
         adjusted.push(i.color_to_distance());
     }
     eprintln!("A: {:?}", adjusted);
