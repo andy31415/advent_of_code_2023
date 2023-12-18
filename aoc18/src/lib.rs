@@ -101,24 +101,27 @@ impl<'a> DigMap<'a> {
     fn dug_out_depth(&self) -> usize {
         let mut total = 0;
         for row in self.row_range.0..self.row_range.1 {
-            // Assume no circles, since it is perimeter only
-            let mut low = None;
-            let mut high = None;
-            for col in self.col_range.0..self.col_range.1 {
-                if !self.holes.contains_key(&(row, col)) {
-                    continue;
-                }
+            let mut inside = false;
+            let mut col = self.col_range.0;
 
-                if low.is_none() {
-                    low = Some(col);
+            while col < self.col_range.1 {
+                if self.holes.contains_key(&(row, col)) {
+                    // consume the entire run of dug out items and then flip inside
+                    while self.holes.contains_key(&(row, col)) {
+                        total += 1;
+                        col += 1;
+                    }
+
+                    inside = !inside;
+                    continue;
+                } 
+                
+                if inside {
+                    total += 1;
                 }
-                high = Some(col);
+                col += 1;
             }
 
-            total += match (low, high) {
-                (Some(l), Some(h)) => (h - l + 1) as usize,
-                _ => panic!("no dig data"),
-            };
 
             trace!("After row {}: {}", row, total);
         }

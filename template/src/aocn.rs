@@ -1,5 +1,4 @@
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::{layer::SubscriberExt, Layer, util::SubscriberInitExt};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[cfg(feature = "dhat-heap")]
 #[global_allocator]
@@ -13,7 +12,8 @@ fn main() {
     let stdout_log = tracing_subscriber::fmt::layer().pretty();
     
     tracing_subscriber::registry()
-        .with(stdout_log.with_filter(LevelFilter::WARN))
+        .with(stdout_log)
+        .with(EnvFilter::from_default_env())
         .init();
 
     let s1 = {{project-name}}::part1(include_str!("../input.txt"));
