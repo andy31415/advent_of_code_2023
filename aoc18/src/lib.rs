@@ -5,7 +5,6 @@ use std::{
     ops::Add,
 };
 
-use glam::I64Vec2;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -225,6 +224,18 @@ struct Line {
 }
 
 impl Line {
+    fn is_valid(&self) -> bool {
+        (self.is_horizontal() || self.is_vertical())
+            && (self.br.0 >= self.tl.0)
+            && self.br.1 >= self.tl.1
+    }
+
+    fn validate(&self) {
+        if !self.is_valid() {
+            panic!("Invalid line: {:?}", self);
+        }
+    }
+
     fn horizontal(tl: Point, d: usize) -> Self {
         Self {
             tl,
@@ -375,6 +386,9 @@ impl DigMap2 {
                 }
             }
         }
+        for l in self.lines.iter() {
+            l.validate();
+        }
     }
 
     fn horizontal_with_end_at(&self, p: Point) -> Line {
@@ -399,6 +413,68 @@ impl DigMap2 {
             .iter()
             .find(|l| l.is_vertical() && (input.contains(l.start()) || input.contains(l.end())))
             .expect("Find line with start inside")
+    }
+
+    fn insert_new_horizontal(&mut self, mut h: Line) -> usize {
+        assert!(h.is_horizontal());
+
+        let mut overlaps = self
+            .lines
+            .iter()
+            .filter(|l| l.is_horizontal() && l.row() == h.row())
+            .map(|l| *l)
+            .collect::<Vec<_>>();
+
+        overlaps.sort_by(|a, b| Ord::cmp(&a.start().1, &b.start().1));
+        
+        let mut extra_add = 0;
+
+        for other in overlaps {
+            if other.end().1 < h.start().1 {
+                // before
+                continue;
+            }
+
+            if other.start().1 > h.end().1 {
+                // after
+                continue;
+            }
+
+            let hs = h.start().1;
+            let he = h.end().1;
+
+            let os = other.start().1;
+            let oe = other.end().1;
+
+            // MUST be full overlap, otherwise our map is invalid
+            assert!(os > hs && oe < he);
+            trace!("SPECIAL CASE: {:?} inside {:?}", other, h);
+
+            // keep only a subset of the line without overlap
+            //  o:       |----------------|
+            //  h: |----------------------------------|
+            //  BECOMES:
+            //
+            //     |-----|                |-----------|
+            self.lines.remove(&other);
+
+            let left = h.with_end_moved_to(other.start());
+            left.validate();
+            self.lines.insert(left);
+            
+            trace!("LEFT: {:?}", left);
+            
+            extra_add += other.distance() - 2;
+            
+            h = h.with_start_moved_to(other.end());
+            h.validate();
+            trace!("REMAIN: {:?}", h);
+        }
+
+        self.lines.insert(h);
+
+        extra_add
+            
     }
 
     fn remove_rectangle(&mut self) -> Option<usize> {
@@ -428,7 +504,12 @@ impl DigMap2 {
         let v_left = self.vertical_with_end_at(top_left);
         let v_right = self.vertical_with_end_at(h.end());
 
-        //trace!("BORDERS:\n  H:  {:?}\n  VL: {:?}\n  VR: {:?}", h, v_left, v_right);
+        trace!(
+            "BORDERS:\n  H:  {:?}\n  VL: {:?}\n  VR: {:?}",
+            h,
+            v_left,
+            v_right
+        );
         assert!(v_left.start() == h.start());
         assert!(v_right.start() == h.end());
         assert!(v_left != v_right);
@@ -488,7 +569,8 @@ impl DigMap2 {
                 };
                 assert!(new_line.is_horizontal());
 
-                self.lines.insert(new_line);
+                new_line.validate();
+                size_removed += self.insert_new_horizontal(new_line);
             }
             std::cmp::Ordering::Less => {
                 // left side is shorter
@@ -501,6 +583,7 @@ impl DigMap2 {
                 //   - new top horizontal
                 //   - shorter right-side vertical
                 let shorter_right = v_right.with_start_moved_to((h_low.end().0, v_right.start().1));
+                shorter_right.validate();
                 self.lines.insert(shorter_right);
                 size_removed += rectangle_area(top_left, shorter_right.start());
                 size_removed -= h.distance(); // do not consider lower row, that is adjusted
@@ -516,7 +599,17 @@ impl DigMap2 {
                     size_removed += (updated_h.start().1 - h_low.start().1) as usize;
                 }
 
-                self.lines.insert(updated_h);
+                if !updated_h.is_valid() {
+                    trace!("!!!!!!!!!!!!!!!!!!! INVALID LINE: !!!!!!!!!!!!!!");
+                    trace!("!! HLOW:    {:?}", h_low);
+                    trace!("!! V_RIGHT: {:?} (col {})", v_right, v_right.col());
+                    trace!("!! OTHER_V: {:?} (col {})", other_v, other_v.col());
+                    trace!("!! ---------------------------------------------");
+                    trace!("!! RESULT:  {:?}", updated_h);
+                }
+
+                updated_h.validate();
+                size_removed += self.insert_new_horizontal(updated_h);
             }
             std::cmp::Ordering::Greater => {
                 // right side is shorter
@@ -528,6 +621,7 @@ impl DigMap2 {
                 //   - new top horizontal
                 //   - shorter right-side vertical
                 let shorter_left = v_left.with_start_moved_to((h_low.row(), v_left.col()));
+                shorter_left.validate();
                 self.lines.insert(shorter_left);
                 size_removed += rectangle_area(top_left, (h_low.row(), v_right.col()));
                 size_removed -= h.distance(); // do not consider lower row, that is adjusted
@@ -544,7 +638,8 @@ impl DigMap2 {
                 }
 
                 // since this line remains, keep the distance
-                self.lines.insert(updated_h);
+                updated_h.validate();
+                size_removed += self.insert_new_horizontal(updated_h);
             }
         }
 
@@ -556,10 +651,10 @@ impl DigMap2 {
 pub fn part1(input: &str) -> usize {
     let mut map = DigMap::new();
     map.perform_instructions(&parse_input(input));
-    info!("DigMap:\n{}", &map);
+    //info!("DigMap:\n{}", &map);
     map.flood_fill_inside();
 
-    info!("After dig:\n{}", &map);
+    //info!("After dig:\n{}", &map);
     map.dug_out_depth()
 }
 
@@ -568,16 +663,14 @@ pub fn part1_b(input: &str) -> usize {
     let mut map = DigMap2::default();
     map.perform_instructions(&parse_input(input));
     info!("DigMap:\n{}", map.display());
-    info!("{:?}", map);
 
     let mut total = 0;
 
     while let Some(n) = map.remove_rectangle() {
         info!("Updated, {}:\n{}", n, map.display());
-        info!("{:?}", map);
         total += n;
     }
-    info!("Final, {}", total);
+    //info!("Final, {}", total);
     total
 }
 

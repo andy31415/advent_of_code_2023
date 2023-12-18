@@ -17,8 +17,11 @@ fn main() {
         .init();
 
     let s1 = aoc18::part1(include_str!("../input.txt"));
-    println!("Part 1: {}", s1);
+    println!("Part 1:  {}", s1);
+
+    let s1 = aoc18::part1_b(include_str!("../input.txt"));
+    println!("Part 1b: {}", s1);
 
     let s2 = aoc18::part2(include_str!("../input.txt"));
-    println!("Part 2: {}", s2);
+    println!("Part 2:  {}", s2);
 }
