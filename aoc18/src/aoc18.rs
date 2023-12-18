@@ -4,15 +4,13 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
-
-
 #[tracing::instrument]
 fn main() {
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
 
     let stdout_log = tracing_subscriber::fmt::layer().pretty();
-    
+
     tracing_subscriber::registry()
         .with(stdout_log)
         .with(EnvFilter::from_default_env())

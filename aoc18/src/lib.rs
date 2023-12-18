@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, HashSet},
-    fmt::{Display, Write},
+    fmt::{Debug, Display, Write},
     hash::Hash,
     ops::Add,
 };
@@ -211,10 +211,19 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
     result
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 struct StartPoint {
     row: i64,
     col: i64,
+}
+
+impl Debug for StartPoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SP")
+            .field("r", &self.row)
+            .field("c", &self.col)
+            .finish()
+    }
 }
 
 impl From<(i64, i64)> for StartPoint {
@@ -226,6 +235,17 @@ impl From<(i64, i64)> for StartPoint {
     }
 }
 
+impl Into<(i64, i64)> for StartPoint {
+    fn into(self) -> (i64, i64) {
+        (self.row, self.col)
+    }
+}
+
+fn rectangle_area(tl: StartPoint, br: StartPoint) -> usize {
+    trace!("AREA OF {:?} to {:?}", tl, br);
+    ((br.row - tl.row + 1) * (br.col - tl.col + 1)) as usize
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 enum Line {
     Horizontal(StartPoint, usize),
@@ -233,6 +253,15 @@ enum Line {
 }
 
 impl Line {
+    fn contains(&self, p: StartPoint) -> bool {
+        let (rl, rh, cl, ch) = match self {
+            Line::Horizontal(p, d) => (p.row, p.row, p.col, p.col + *d as i64),
+            Line::Vertical(p, d) => (p.row, p.row + *d as i64, p.col, p.col),
+        };
+
+        (rl..=rh).contains(&p.row) && (cl..=ch).contains(&p.col)
+    }
+
     fn start(&self) -> StartPoint {
         match self {
             Line::Horizontal(p, _) | Line::Vertical(p, _) => *p,
@@ -275,7 +304,6 @@ impl Line {
             _ => panic!("Illegal end move: {:?}, {:?}", self, p),
         }
     }
-
 }
 
 // A dig map that contains a list of lines (since the lines may be huge)
@@ -285,6 +313,54 @@ struct DigMap2 {
 }
 
 impl DigMap2 {
+    /// NOTE: NOT ok for large maps.
+    fn display(&self) -> String {
+        let mut rl = 0;
+        let mut rh = 0;
+        let mut cl = 0;
+        let mut ch = 0;
+        for line in self.lines.iter() {
+            let (s, e) = (line.start(), line.end());
+
+            if rl > s.row {
+                rl = s.row;
+            }
+            if cl > s.col {
+                cl = s.col;
+            }
+            if rh < e.row {
+                rh = e.row;
+            }
+            if ch < e.col {
+                ch = e.col;
+            }
+        }
+
+        (rl..=rh)
+            .map(|r| {
+                (cl..=ch)
+                    .map(|c| {
+                        if self.on_some_line((r, c).into()) {
+                            '#'
+                        } else {
+                            '.'
+                        }
+                    })
+                    .collect::<String>()
+                    + "\n"
+            })
+            .collect()
+    }
+
+    fn on_some_line(&self, p: StartPoint) -> bool {
+        for l in self.lines.iter() {
+            if l.contains(p) {
+                return true;
+            }
+        }
+        false
+    }
+
     fn perform_instructions(&mut self, instructions: &[DigInstruction]) {
         let mut worker_pos = (0, 0);
         for instruction in instructions {
@@ -339,13 +415,21 @@ impl DigMap2 {
             .expect("has line with ending")
     }
 
+    fn vertical_with_start_inside(&self, input: Line) -> Line {
+        *self
+            .lines
+            .iter()
+            .find(|l| input.contains(l.start()))
+            .expect("Find line with start inside")
+    }
+
     fn remove_rectangle(&mut self) -> Option<usize> {
         // Performs in order:
         // - find the top-left most point in the map
         // - find the rectangle to the rigth of it
         // - remove that rectangle (and re-make lines out of it)
         //
-        let top_left = self
+        let top_left = *self
             .lines
             .iter()
             .map(|l| match l {
@@ -359,14 +443,18 @@ impl DigMap2 {
                 }
             })
             .expect("has lines");
-        trace!("TOP-left: {:?}", top_left);
 
-        let h = self.horizontal_with_end_at(*top_left);
-        let v_left = self.vertical_with_end_at(*top_left);
-        trace!("H: {:?}, V: {:?}", h, v_left);
+        let h = self.horizontal_with_end_at(top_left);
+        let v_left = self.vertical_with_end_at(top_left);
 
         let v_right = self.vertical_with_end_at(h.end());
-        trace!("V2: {:?}", v_right);
+
+        // remove the sides of the rectangle
+        self.lines.remove(&h);
+        self.lines.remove(&v_left);
+        self.lines.remove(&v_right);
+
+        let mut size_removed = 0;
 
         // At this point we have:
         // Horizontal: size of the full cut
@@ -379,23 +467,27 @@ impl DigMap2 {
             std::cmp::Ordering::Less => {
                 // left side is shorter
                 let h_low = self.horizontal_with_end_at(v_left.end());
-
-                // remove the sides of the rectangle
-                self.lines.remove(&h);
-                self.lines.remove(&v_left);
-                self.lines.remove(&v_right);
+                let other_v = self.vertical_with_start_inside(h_low);
                 self.lines.remove(&h_low);
 
                 // add them back:
                 //   - new top horizontal
                 //   - shorter right-side vertical
-                let updated_h = h_low.with_end_moved_to((h_low.start().row, v_right.start().col));
-                trace!("Extended horizontal: {:?}", updated_h);
-                self.lines.insert(updated_h);
-
-                let shorter_right = v_right.with_start_moved_to((h_low.start().row, v_right.start().col));
-                trace!("Shorter right: {:?}", updated_h);
+                let shorter_right =
+                    v_right.with_start_moved_to((h_low.start().row, v_right.start().col));
                 self.lines.insert(shorter_right);
+                size_removed += rectangle_area(top_left, shorter_right.start());
+
+                // Need to move horizontal.
+                // End is fixed, need to determine what to do with the start
+                let updated_h = h_low
+                    .with_end_moved_to((h_low.start().row, v_right.start().col))
+                    .with_start_moved_to(other_v.start().into());
+
+                // since this line remains, keep the distance
+                size_removed -= updated_h.distance();
+
+                self.lines.insert(updated_h);
             }
             std::cmp::Ordering::Greater => {
                 // right side is shorter
@@ -403,7 +495,7 @@ impl DigMap2 {
             }
         }
 
-        None
+        Some(size_removed)
     }
 }
 
@@ -422,13 +514,15 @@ pub fn part1(input: &str) -> usize {
 pub fn part1_b(input: &str) -> usize {
     let mut map = DigMap2::default();
     map.perform_instructions(&parse_input(input));
-    info!("DigMap:\n{:?}", &map);
+    info!("DigMap:\n{}", map.display());
 
     let mut total = 0;
 
     while let Some(n) = map.remove_rectangle() {
+        info!("Updated, {}:\n{}", n, map.display());
         total += n;
     }
+    info!("Final, {}:\n{}", total, map.display());
     total
 }
 
@@ -451,44 +545,50 @@ mod tests {
         assert_eq!(part1_b(include_str!("../example.txt")), 62);
     }
 
-
     #[test_log::test]
     fn test_move_start() {
         assert_eq!(
-            Line::Horizontal((10,10).into(), 5).with_start_moved_to((10, 5)),
-            Line::Horizontal((10,5).into(), 10));
+            Line::Horizontal((10, 10).into(), 5).with_start_moved_to((10, 5)),
+            Line::Horizontal((10, 5).into(), 10)
+        );
 
         assert_eq!(
-            Line::Horizontal((10,10).into(), 5).with_start_moved_to((10, 12)),
-            Line::Horizontal((10,12).into(), 3));
+            Line::Horizontal((10, 10).into(), 5).with_start_moved_to((10, 12)),
+            Line::Horizontal((10, 12).into(), 3)
+        );
 
         assert_eq!(
-            Line::Vertical((10,10).into(), 5).with_start_moved_to((5,10)),
-            Line::Vertical((5,10).into(), 10));
+            Line::Vertical((10, 10).into(), 5).with_start_moved_to((5, 10)),
+            Line::Vertical((5, 10).into(), 10)
+        );
 
         assert_eq!(
-            Line::Vertical((10,10).into(), 5).with_start_moved_to((12, 10)),
-            Line::Vertical((12,10).into(), 3));
+            Line::Vertical((10, 10).into(), 5).with_start_moved_to((12, 10)),
+            Line::Vertical((12, 10).into(), 3)
+        );
     }
 
     #[test_log::test]
     fn test_move_end() {
         assert_eq!(
-            Line::Horizontal((10,10).into(), 5).with_end_moved_to((10, 20)),
-            Line::Horizontal((10,10).into(), 10));
+            Line::Horizontal((10, 10).into(), 5).with_end_moved_to((10, 20)),
+            Line::Horizontal((10, 10).into(), 10)
+        );
 
         assert_eq!(
-            Line::Horizontal((10,10).into(), 5).with_end_moved_to((10, 12)),
-            Line::Horizontal((10,10).into(), 2));
+            Line::Horizontal((10, 10).into(), 5).with_end_moved_to((10, 12)),
+            Line::Horizontal((10, 10).into(), 2)
+        );
 
         assert_eq!(
-            Line::Vertical((10,10).into(), 5).with_end_moved_to((20, 10)),
-            Line::Vertical((10,10).into(), 10));
+            Line::Vertical((10, 10).into(), 5).with_end_moved_to((20, 10)),
+            Line::Vertical((10, 10).into(), 10)
+        );
 
         assert_eq!(
-            Line::Vertical((10,10).into(), 5).with_end_moved_to((12, 10)),
-            Line::Vertical((10,10).into(), 2));
-
+            Line::Vertical((10, 10).into(), 5).with_end_moved_to((12, 10)),
+            Line::Vertical((10, 10).into(), 2)
+        );
     }
 
     #[test_log::test]
