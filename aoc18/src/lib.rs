@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, HashSet},
     fmt::{Display, Write},
     ops::Add,
 };
@@ -14,7 +14,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing::{info, instrument, trace};
+use tracing::{info, instrument};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Direction {
@@ -97,36 +97,52 @@ impl<'a> DigMap<'a> {
             }
         }
     }
+    
+    fn hole_at(&self, p: (i32, i32)) -> bool {
+        return self.holes.contains_key(&p)
+    }
+    
+    fn find_inside(&self) -> (i32, i32) {
+       for row in self.row_range.0..self.row_range.1 {
+           for col in self.col_range.0..self.col_range.1 {
+               let p = (row, col);
 
-    fn dug_out_depth(&self) -> usize {
-        let mut total = 0;
-        for row in self.row_range.0..self.row_range.1 {
-            let mut inside = false;
-            let mut col = self.col_range.0;
-
-            while col < self.col_range.1 {
-                if self.holes.contains_key(&(row, col)) {
-                    // consume the entire run of dug out items and then flip inside
-                    while self.holes.contains_key(&(row, col)) {
-                        total += 1;
-                        col += 1;
-                    }
-
-                    inside = !inside;
-                    continue;
-                } 
-                
-                if inside {
-                    total += 1;
-                }
-                col += 1;
+            if !self.hole_at(Direction::Left + p)
+                && self.hole_at(p)
+                && !self.hole_at(Direction::Right + p) {
+                    return Direction::Right + p;
             }
+          }
+       }
+       panic!("If all is stairs, this is not implemented");
+    }
 
+    fn flood_fill_inside(&mut self) {
+        let mut fills = Vec::new();
+        let mut seen = HashSet::new();
+        fills.push(self.find_inside());
 
-            trace!("After row {}: {}", row, total);
+        while let Some(p) = fills.pop() {
+            seen.insert(p);
+            
+            for d in [Direction::Left, Direction::Right, Direction::Up, Direction::Down] {
+                let other = d + p;
+                if self.hole_at(other) {
+                    continue;
+                }
+                if !seen.contains(&other) {
+                    fills.push(other);
+                }
+            }
         }
 
-        total
+        for p in seen {
+            self.holes.insert(p, "");
+        }
+    }
+
+    fn dug_out_depth(&self) -> usize {
+        self.holes.len()
     }
 }
 
@@ -182,8 +198,10 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
 pub fn part1(input: &str) -> usize {
     let mut map = DigMap::new();
     map.perform_instructions(&parse_input(input));
-
     info!("DigMap:\n{}", &map);
+    map.flood_fill_inside();
+
+    info!("After dig:\n{}", &map);
     map.dug_out_depth()
 }
 
@@ -199,6 +217,20 @@ mod tests {
     #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 62);
+    }
+
+    #[test_log::test]
+    fn test_trace() {
+        assert_eq!(part1("
+R 2 (#123123)
+D 2 (#123123)
+R 2 (#123123)
+U 2 (#123123)
+R 3 (#123123)
+D 4 (#123123)
+L 7 (#123123)
+U 4 (#123123)
+        ".trim()), 38);
     }
 
     #[test]
