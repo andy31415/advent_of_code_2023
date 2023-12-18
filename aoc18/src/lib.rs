@@ -301,6 +301,15 @@ impl Line {
 #[derive(Debug, Default)]
 struct DigMap2 {
     lines: HashSet<Line>,
+    points: Vec<(i64, i64)>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+enum Quadrant {
+    NW,
+    NE,
+    SE,
+    SW,
 }
 
 impl DigMap2 {
@@ -354,6 +363,7 @@ impl DigMap2 {
 
     fn perform_instructions(&mut self, instructions: &[DigInstruction]) {
         let mut worker_pos = (0, 0);
+        self.points.push(worker_pos);
         for instruction in instructions {
             match instruction.direction {
                 Direction::Up => {
@@ -385,108 +395,18 @@ impl DigMap2 {
                     worker_pos.1 += instruction.distance;
                 }
             }
+            if worker_pos != (0, 0) {
+                self.points.push(worker_pos);
+            }
         }
         for l in self.lines.iter() {
             l.validate();
         }
     }
 
-    fn horizontal_with_end_at(&self, p: Point) -> Line {
-        *self
-            .lines
-            .iter()
-            .find(|l| l.is_horizontal() && (l.start() == p || l.end() == p))
-            .expect("has line with ending")
-    }
-
-    fn vertical_with_end_at(&self, p: Point) -> Line {
-        *self
-            .lines
-            .iter()
-            .find(|l| l.is_vertical() && (l.start() == p || l.end() == p))
-            .expect("has line with ending")
-    }
-
-    fn vertical_with_end_inside(&self, input: Line) -> Line {
-        *self
-            .lines
-            .iter()
-            .find(|l| l.is_vertical() && (input.contains(l.start()) || input.contains(l.end())))
-            .expect("Find line with start inside")
-    }
-
-    fn insert_new_horizontal(&mut self, mut h: Line) -> usize {
-        assert!(h.is_horizontal());
-
-        let mut overlaps = self
-            .lines
-            .iter()
-            .filter(|l| l.is_horizontal() && l.row() == h.row())
-            .map(|l| *l)
-            .collect::<Vec<_>>();
-
-        overlaps.sort_by(|a, b| Ord::cmp(&a.start().1, &b.start().1));
-        
-        let mut extra_add = 0;
-
-        for other in overlaps {
-            if other.end().1 < h.start().1 {
-                // before
-                continue;
-            }
-
-            if other.start().1 > h.end().1 {
-                // after
-                continue;
-            }
-
-            let hs = h.start().1;
-            let he = h.end().1;
-
-            let os = other.start().1;
-            let oe = other.end().1;
-
-            // MUST be full overlap, otherwise our map is invalid
-            assert!(os > hs && oe < he);
-            trace!("SPECIAL CASE: {:?} inside {:?}", other, h);
-
-            // keep only a subset of the line without overlap
-            //  o:       |----------------|
-            //  h: |----------------------------------|
-            //  BECOMES:
-            //
-            //     |-----|                |-----------|
-            self.lines.remove(&other);
-
-            let left = h.with_end_moved_to(other.start());
-            left.validate();
-            self.lines.insert(left);
-            
-            trace!("LEFT: {:?}", left);
-            
-            extra_add += other.distance() - 2;
-            
-            h = h.with_start_moved_to(other.end());
-            h.validate();
-            trace!("REMAIN: {:?}", h);
-        }
-
-        self.lines.insert(h);
-
-        extra_add
-            
-    }
-
-    fn remove_rectangle(&mut self) -> Option<usize> {
-        if self.lines.is_empty() {
-            return None;
-        }
-
-        // Performs in order:
-        // - find the top-left most point in the map
-        // - find the rectangle to the rigth of it
-        // - remove that rectangle (and re-make lines out of it)
-        //
+    fn compute_points(&self) -> Vec<Point> {
+        // FIXME: compute the points that we are to
+        // use to display
         let top_left = self
             .lines
             .iter()
@@ -500,150 +420,35 @@ impl DigMap2 {
             })
             .expect("has lines");
 
-        let h = self.horizontal_with_end_at(top_left);
-        let v_left = self.vertical_with_end_at(top_left);
-        let v_right = self.vertical_with_end_at(h.end());
-
-        trace!(
-            "BORDERS:\n  H:  {:?}\n  VL: {:?}\n  VR: {:?}",
-            h,
-            v_left,
-            v_right
-        );
-        assert!(v_left.start() == h.start());
-        assert!(v_right.start() == h.end());
-        assert!(v_left != v_right);
-
-        // remove the sides of the rectangle
-        self.lines.remove(&h);
-        self.lines.remove(&v_left);
-        self.lines.remove(&v_right);
-
-        let mut size_removed = 0;
-
-        // At this point we have:
-        // Horizontal: size of the full cut
-        // Vertical: 2 (maybe different) lengths, for which the shortest MUST be cut
-        match v_left.distance().cmp(&v_right.distance()) {
-            std::cmp::Ordering::Equal => {
-                // They are of the same length. we need to merge SEVERAL lines
-                size_removed += rectangle_area(v_left.start(), v_right.end());
-
-                let lower_h_left = self.horizontal_with_end_at(v_left.end());
-                let lower_h_right = self.horizontal_with_end_at(v_right.end());
-
-                if lower_h_left == lower_h_right {
-                    self.lines.remove(&lower_h_left);
-                    return Some(size_removed);
-                }
-                // do not consider lower row, that is adjusted
-                size_removed -= h.distance();
-
-                // non-final rectangle. Need to merge the lines
-                // Cases
-                //    L  R    |  L    R   |   L    R | L     R
-                //    #  #    |  #    #   |   #    # | #     #
-                //    #  #    |  #    #   |   #    # | #     #
-                //  ###  ###  |  ###  ### | ###  ### | ### ###
-
-                self.lines.remove(&lower_h_left);
-                self.lines.remove(&lower_h_right);
-
-                let left_start = if lower_h_left.start().1 < v_left.col() {
-                    lower_h_left.start()
-                } else {
-                    size_removed += lower_h_left.distance() - 1;
-                    lower_h_left.end()
-                };
-
-                let right_end = if lower_h_right.start().1 < v_right.col() {
-                    size_removed += lower_h_right.distance() - 1;
-                    lower_h_right.start()
-                } else {
-                    lower_h_right.end()
-                };
-
-                let new_line = Line {
-                    tl: left_start,
-                    br: right_end,
-                };
-                assert!(new_line.is_horizontal());
-
-                new_line.validate();
-                size_removed += self.insert_new_horizontal(new_line);
-            }
-            std::cmp::Ordering::Less => {
-                // left side is shorter
-                let h_low = self.horizontal_with_end_at(v_left.end());
-                let other_v = self.vertical_with_end_inside(h_low);
-
-                self.lines.remove(&h_low);
-
-                // add them back:
-                //   - new top horizontal
-                //   - shorter right-side vertical
-                let shorter_right = v_right.with_start_moved_to((h_low.end().0, v_right.start().1));
-                shorter_right.validate();
-                self.lines.insert(shorter_right);
-                size_removed += rectangle_area(top_left, shorter_right.start());
-                size_removed -= h.distance(); // do not consider lower row, that is adjusted
-
-                // Need to move horizontal.
-                // End is fixed, need to determine what to do with the start
-                let updated_h = h_low
-                    .with_end_moved_to((h_low.row(), v_right.col()))
-                    .with_start_moved_to((h_low.row(), other_v.col()));
-
-                // adjust if line length is decreased
-                if updated_h.start().1 > h_low.start().1 {
-                    size_removed += (updated_h.start().1 - h_low.start().1) as usize;
-                }
-
-                if !updated_h.is_valid() {
-                    trace!("!!!!!!!!!!!!!!!!!!! INVALID LINE: !!!!!!!!!!!!!!");
-                    trace!("!! HLOW:    {:?}", h_low);
-                    trace!("!! V_RIGHT: {:?} (col {})", v_right, v_right.col());
-                    trace!("!! OTHER_V: {:?} (col {})", other_v, other_v.col());
-                    trace!("!! ---------------------------------------------");
-                    trace!("!! RESULT:  {:?}", updated_h);
-                }
-
-                updated_h.validate();
-                size_removed += self.insert_new_horizontal(updated_h);
-            }
-            std::cmp::Ordering::Greater => {
-                // right side is shorter
-                let h_low = self.horizontal_with_end_at(v_right.end());
-                let other_v = self.vertical_with_end_inside(h_low);
-                self.lines.remove(&h_low);
-
-                // add them back:
-                //   - new top horizontal
-                //   - shorter right-side vertical
-                let shorter_left = v_left.with_start_moved_to((h_low.row(), v_left.col()));
-                shorter_left.validate();
-                self.lines.insert(shorter_left);
-                size_removed += rectangle_area(top_left, (h_low.row(), v_right.col()));
-                size_removed -= h.distance(); // do not consider lower row, that is adjusted
-
-                // Need to move horizontal.
-                // Start is fixed, need to figure out what to do with end
-                let updated_h = h_low
-                    .with_end_moved_to((h_low.start().0, other_v.start().1))
-                    .with_start_moved_to((h_low.start().0, v_left.start().1));
-
-                // adjust if line length is decreased
-                if updated_h.end().1 < h_low.end().1 {
-                    size_removed += (h_low.end().1 - updated_h.end().1) as usize;
-                }
-
-                // since this line remains, keep the distance
-                updated_h.validate();
-                size_removed += self.insert_new_horizontal(updated_h);
-            }
+        let mut result = Vec::new();
+        // once top-let is computed, the are MUST be lower-right.
+        result.push(top_left);
+        let mut inside = Quadrant::SE;
+        
+        let actual = self.points.clone();
+        let idx = actual.iter().position(|p| p == &top_left).expect("top_left in iterator");
+        let (l, r) = actual.split_at(idx);
+        
+        let mut reordered = r.iter().collect::<Vec<_>>();
+        for x in l {
+            reordered.push(x);
         }
+        trace!("Reordered: {:?}", &reordered);
 
-        Some(size_removed)
+        // at this point start moving and decide where the area resides
+        result
+    }
+
+    fn area_from_points(&self) -> u64 {
+        let d = self
+            .compute_points()
+            .iter()
+            .zip(self.points.iter().skip(1).chain(&[self.points[0]]))
+            .map(|(a, b)| (a.0 * b.1).abs_diff(b.0 * b.1))
+            .sum::<u64>();
+
+        assert!(d % 2 == 0);
+        d / 2
     }
 }
 
@@ -659,19 +464,13 @@ pub fn part1(input: &str) -> usize {
 }
 
 #[instrument(skip_all)]
-pub fn part1_b(input: &str) -> usize {
+pub fn part1_b(input: &str) -> u64 {
     let mut map = DigMap2::default();
     map.perform_instructions(&parse_input(input));
     info!("DigMap:\n{}", map.display());
+    info!("DigMapP:\n{:?}", map.points);
 
-    let mut total = 0;
-
-    while let Some(n) = map.remove_rectangle() {
-        info!("Updated, {}:\n{}", n, map.display());
-        total += n;
-    }
-    //info!("Final, {}", total);
-    total
+    map.area_from_points()
 }
 
 pub fn part2(_input: &str) -> usize {
