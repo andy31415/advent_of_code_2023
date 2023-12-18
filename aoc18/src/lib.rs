@@ -5,6 +5,7 @@ use std::{
     ops::Add,
 };
 
+use glam::I64Vec2;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -211,98 +212,69 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
     result
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-struct StartPoint {
-    row: i64,
-    col: i64,
-}
+type Point = (i64, i64);
 
-impl Debug for StartPoint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SP")
-            .field("r", &self.row)
-            .field("c", &self.col)
-            .finish()
-    }
-}
-
-impl From<(i64, i64)> for StartPoint {
-    fn from(value: (i64, i64)) -> Self {
-        Self {
-            row: value.0,
-            col: value.1,
-        }
-    }
-}
-
-impl Into<(i64, i64)> for StartPoint {
-    fn into(self) -> (i64, i64) {
-        (self.row, self.col)
-    }
-}
-
-fn rectangle_area(tl: StartPoint, br: StartPoint) -> usize {
-    trace!("AREA OF {:?} to {:?}", tl, br);
-    ((br.row - tl.row + 1) * (br.col - tl.col + 1)) as usize
+fn rectangle_area(tl: Point, br: Point) -> usize {
+  ((br.0 + 1 - tl.0)* (br.1 + 1 - tl.1)) as usize
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-enum Line {
-    Horizontal(StartPoint, usize),
-    Vertical(StartPoint, usize),
+struct Line {
+    tl: Point,
+    br: Point,
 }
 
 impl Line {
-    fn contains(&self, p: StartPoint) -> bool {
-        let (rl, rh, cl, ch) = match self {
-            Line::Horizontal(p, d) => (p.row, p.row, p.col, p.col + *d as i64),
-            Line::Vertical(p, d) => (p.row, p.row + *d as i64, p.col, p.col),
-        };
-
-        (rl..=rh).contains(&p.row) && (cl..=ch).contains(&p.col)
-    }
-
-    fn start(&self) -> StartPoint {
-        match self {
-            Line::Horizontal(p, _) | Line::Vertical(p, _) => *p,
+    fn horizontal(tl: Point, d: usize) -> Self {
+        Self {
+            tl,
+            br: (tl.0, tl.1 + d as i64)
         }
     }
 
-    fn end(&self) -> StartPoint {
-        match self {
-            Line::Horizontal(p, d) => (p.row, p.col + *d as i64).into(),
-            Line::Vertical(p, d) => (p.row + *d as i64, p.col).into(),
+    fn vertical(tl: Point, d: usize) -> Self {
+        Self {
+            tl,
+            br: (tl.0 + d as i64, tl.1)
         }
+    }
+    
+    fn is_horizontal(&self) -> bool {
+        self.tl.0 == self.br.0
+    }
+    
+    fn is_vertical(&self) -> bool {
+        self.tl.1 == self.br.1
+    }
+    
+    
+    fn contains(&self, p: (i64, i64)) -> bool {
+        (self.tl.0..=self.br.0).contains(&p.0) &&
+        (self.tl.1..=self.br.1).contains(&p.1)
+    }
+
+    fn start(&self) -> (i64, i64) {
+        self.tl
+    }
+
+    fn end(&self) -> (i64, i64) {
+        self.br
     }
 
     fn distance(&self) -> usize {
-        match self {
-            Line::Horizontal(_, d) | Line::Vertical(_, d) => *d,
-        }
+        ((self.br.0 - self.tl.0) + (self.br.1 - self.tl.1) + 1) as usize
     }
 
-    fn with_start_moved_to(&self, p: (i64, i64)) -> Self {
-        match self {
-            Line::Horizontal(StartPoint { row: r, col: c }, d) if *r == p.0 => {
-                Line::Horizontal(p.into(), (*d as i64 + (c - p.1)) as usize)
-            }
-            Line::Vertical(StartPoint { row: r, col: c }, d) if *c == p.1 => {
-                Line::Vertical(p.into(), (*d as i64 + (r - p.0)) as usize)
-            }
-            _ => panic!("Illegal start move: {:?}, {:?}", self, p),
-        }
+    fn with_start_moved_to(&self, tl: (i64, i64)) -> Self {
+        // MUST keep only horizontal/vertical
+        assert!((tl.0 == self.br.0) || (tl.1 == self.br.1));
+        Self { tl, br: self.br }
     }
 
-    fn with_end_moved_to(&self, p: (i64, i64)) -> Self {
-        match self {
-            Line::Horizontal(StartPoint { row: r, col: c }, _) if *r == p.0 => {
-                Line::Horizontal((*r, *c).into(), (p.1 - c) as usize)
-            }
-            Line::Vertical(StartPoint { row: r, col: c }, _) if *c == p.1 => {
-                Line::Vertical((*r, *c).into(), (p.0 - r) as usize)
-            }
-            _ => panic!("Illegal end move: {:?}, {:?}", self, p),
-        }
+    fn with_end_moved_to(&self, br: (i64, i64)) -> Self {
+        // MUST keep only horizontal/vertical
+        assert!((br.0 == self.tl.0) || (br.1 == self.tl.1));
+        Self {tl: self.tl, br }
     }
 }
 
@@ -322,17 +294,17 @@ impl DigMap2 {
         for line in self.lines.iter() {
             let (s, e) = (line.start(), line.end());
 
-            if rl > s.row {
-                rl = s.row;
+            if rl > s.0 {
+                rl = s.0;
             }
-            if cl > s.col {
-                cl = s.col;
+            if cl > s.1 {
+                cl = s.1;
             }
-            if rh < e.row {
-                rh = e.row;
+            if rh < e.0 {
+                rh = e.0;
             }
-            if ch < e.col {
-                ch = e.col;
+            if ch < e.1 {
+                ch = e.1;
             }
         }
 
@@ -352,7 +324,7 @@ impl DigMap2 {
             .collect()
     }
 
-    fn on_some_line(&self, p: StartPoint) -> bool {
+    fn on_some_line(&self, p: (i64, i64)) -> bool {
         for l in self.lines.iter() {
             if l.contains(p) {
                 return true;
@@ -367,13 +339,13 @@ impl DigMap2 {
             match instruction.direction {
                 Direction::Up => {
                     worker_pos.0 -= instruction.distance;
-                    self.lines.insert(Line::Vertical(
+                    self.lines.insert(Line::vertical(
                         worker_pos.into(),
                         instruction.distance as usize,
                     ));
                 }
                 Direction::Down => {
-                    self.lines.insert(Line::Vertical(
+                    self.lines.insert(Line::vertical(
                         worker_pos.into(),
                         instruction.distance as usize,
                     ));
@@ -381,13 +353,13 @@ impl DigMap2 {
                 }
                 Direction::Left => {
                     worker_pos.1 -= instruction.distance;
-                    self.lines.insert(Line::Horizontal(
+                    self.lines.insert(Line::horizontal(
                         worker_pos.into(),
                         instruction.distance as usize,
                     ));
                 }
                 Direction::Right => {
-                    self.lines.insert(Line::Horizontal(
+                    self.lines.insert(Line::horizontal(
                         worker_pos.into(),
                         instruction.distance as usize,
                     ));
@@ -397,21 +369,20 @@ impl DigMap2 {
         }
     }
 
-    fn horizontal_with_end_at(&self, p: StartPoint) -> Line {
+    fn horizontal_with_end_at(&self, p: Point) -> Line {
         *self
             .lines
             .iter()
-            .filter(|l| matches!(l, Line::Horizontal(_, _)))
-            .find(|l| l.start() == p || l.end() == p)
+            .find(|l| l.is_horizontal() && (l.start() == p || l.end() == p))
             .expect("has line with ending")
     }
 
-    fn vertical_with_end_at(&self, p: StartPoint) -> Line {
+    fn vertical_with_end_at(&self, p: Point) -> Line {
+        trace!("Searching vertical ending at {:?}", p);
         *self
             .lines
             .iter()
-            .filter(|l| matches!(l, Line::Vertical(_, _)))
-            .find(|l| l.start() == p || l.end() == p)
+            .find(|l| l.is_vertical() && (l.start() == p || l.end() == p))
             .expect("has line with ending")
     }
 
@@ -419,7 +390,7 @@ impl DigMap2 {
         *self
             .lines
             .iter()
-            .find(|l| input.contains(l.start()))
+            .find(|l| l.is_vertical() && input.contains(l.start()))
             .expect("Find line with start inside")
     }
 
@@ -429,25 +400,27 @@ impl DigMap2 {
         // - find the rectangle to the rigth of it
         // - remove that rectangle (and re-make lines out of it)
         //
-        let top_left = *self
+        let top_left = self
             .lines
             .iter()
-            .map(|l| match l {
-                Line::Horizontal(p, _) | Line::Vertical(p, _) => p,
-            })
+            .map(|l| l.start())
             .min_by(|a, b| {
-                if a.row != b.row {
-                    a.row.cmp(&b.row)
+                if a.0 != b.0 {
+                    a.0.cmp(&b.0)
                 } else {
-                    a.col.cmp(&b.col)
+                    a.1.cmp(&b.1)
                 }
             })
             .expect("has lines");
 
         let h = self.horizontal_with_end_at(top_left);
         let v_left = self.vertical_with_end_at(top_left);
-
         let v_right = self.vertical_with_end_at(h.end());
+        
+        trace!("BORDERS:\n  H: {:?}\n  V: {:?}\n  V: {:?}", h, v_left, v_right);
+        assert!(v_left.start() == h.start());
+        assert!(v_right.start() == h.end());
+        assert!(v_left != v_right);
 
         // remove the sides of the rectangle
         self.lines.remove(&h);
@@ -468,21 +441,22 @@ impl DigMap2 {
                 // left side is shorter
                 let h_low = self.horizontal_with_end_at(v_left.end());
                 let other_v = self.vertical_with_start_inside(h_low);
+
                 self.lines.remove(&h_low);
 
                 // add them back:
                 //   - new top horizontal
                 //   - shorter right-side vertical
                 let shorter_right =
-                    v_right.with_start_moved_to((h_low.start().row, v_right.start().col));
+                    v_right.with_start_moved_to((h_low.end().0, v_right.start().1));
                 self.lines.insert(shorter_right);
                 size_removed += rectangle_area(top_left, shorter_right.start());
 
                 // Need to move horizontal.
                 // End is fixed, need to determine what to do with the start
                 let updated_h = h_low
-                    .with_end_moved_to((h_low.start().row, v_right.start().col))
-                    .with_start_moved_to(other_v.start().into());
+                    .with_end_moved_to((h_low.start().0, v_right.start().1))
+                    .with_start_moved_to(other_v.start());
 
                 // since this line remains, keep the distance
                 size_removed -= updated_h.distance();
@@ -515,11 +489,13 @@ pub fn part1_b(input: &str) -> usize {
     let mut map = DigMap2::default();
     map.perform_instructions(&parse_input(input));
     info!("DigMap:\n{}", map.display());
+    info!("{:?}", map);
 
     let mut total = 0;
 
     while let Some(n) = map.remove_rectangle() {
         info!("Updated, {}:\n{}", n, map.display());
+        info!("{:?}", map);
         total += n;
     }
     info!("Final, {}:\n{}", total, map.display());
@@ -548,53 +524,53 @@ mod tests {
     #[test_log::test]
     fn test_move_start() {
         assert_eq!(
-            Line::Horizontal((10, 10).into(), 5).with_start_moved_to((10, 5)),
-            Line::Horizontal((10, 5).into(), 10)
+            Line::horizontal((10, 10).into(), 5).with_start_moved_to((10, 5)),
+            Line::horizontal((10, 5).into(), 10)
         );
 
         assert_eq!(
-            Line::Horizontal((10, 10).into(), 5).with_start_moved_to((10, 12)),
-            Line::Horizontal((10, 12).into(), 3)
+            Line::horizontal((10, 10).into(), 5).with_start_moved_to((10, 12)),
+            Line::horizontal((10, 12).into(), 3)
         );
 
         assert_eq!(
-            Line::Vertical((10, 10).into(), 5).with_start_moved_to((5, 10)),
-            Line::Vertical((5, 10).into(), 10)
+            Line::vertical((10, 10).into(), 5).with_start_moved_to((5, 10)),
+            Line::vertical((5, 10).into(), 10)
         );
 
         assert_eq!(
-            Line::Vertical((10, 10).into(), 5).with_start_moved_to((12, 10)),
-            Line::Vertical((12, 10).into(), 3)
+            Line::vertical((10, 10).into(), 5).with_start_moved_to((12, 10)),
+            Line::vertical((12, 10).into(), 3)
         );
     }
 
     #[test_log::test]
     fn test_move_end() {
         assert_eq!(
-            Line::Horizontal((10, 10).into(), 5).with_end_moved_to((10, 20)),
-            Line::Horizontal((10, 10).into(), 10)
+            Line::horizontal((10, 10).into(), 5).with_end_moved_to((10, 20)),
+            Line::horizontal((10, 10).into(), 10)
         );
 
         assert_eq!(
-            Line::Horizontal((10, 10).into(), 5).with_end_moved_to((10, 12)),
-            Line::Horizontal((10, 10).into(), 2)
+            Line::horizontal((10, 10).into(), 5).with_end_moved_to((10, 12)),
+            Line::horizontal((10, 10).into(), 2)
         );
 
         assert_eq!(
-            Line::Vertical((10, 10).into(), 5).with_end_moved_to((20, 10)),
-            Line::Vertical((10, 10).into(), 10)
+            Line::vertical((10, 10).into(), 5).with_end_moved_to((20, 10)),
+            Line::vertical((10, 10).into(), 10)
         );
 
         assert_eq!(
-            Line::Vertical((10, 10).into(), 5).with_end_moved_to((12, 10)),
-            Line::Vertical((10, 10).into(), 2)
+            Line::vertical((10, 10).into(), 5).with_end_moved_to((12, 10)),
+            Line::vertical((10, 10).into(), 2)
         );
     }
 
     #[test_log::test]
     fn test_trace() {
         assert_eq!(
-            part1(
+            part1_b(
                 "
 R 2 (#123123)
 D 2 (#123123)
