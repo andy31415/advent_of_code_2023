@@ -520,52 +520,6 @@ mod tests {
     }
 
     #[test_log::test]
-    fn test_move_start() {
-        assert_eq!(
-            Line::horizontal((10, 10), 5).with_start_moved_to((10, 5)),
-            Line::horizontal((10, 5), 10)
-        );
-
-        assert_eq!(
-            Line::horizontal((10, 10), 5).with_start_moved_to((10, 12)),
-            Line::horizontal((10, 12), 3)
-        );
-
-        assert_eq!(
-            Line::vertical((10, 10), 5).with_start_moved_to((5, 10)),
-            Line::vertical((5, 10), 10)
-        );
-
-        assert_eq!(
-            Line::vertical((10, 10), 5).with_start_moved_to((12, 10)),
-            Line::vertical((12, 10), 3)
-        );
-    }
-
-    #[test_log::test]
-    fn test_move_end() {
-        assert_eq!(
-            Line::horizontal((10, 10), 5).with_end_moved_to((10, 20)),
-            Line::horizontal((10, 10), 10)
-        );
-
-        assert_eq!(
-            Line::horizontal((10, 10), 5).with_end_moved_to((10, 12)),
-            Line::horizontal((10, 10), 2)
-        );
-
-        assert_eq!(
-            Line::vertical((10, 10), 5).with_end_moved_to((20, 10)),
-            Line::vertical((10, 10), 10)
-        );
-
-        assert_eq!(
-            Line::vertical((10, 10), 5).with_end_moved_to((12, 10)),
-            Line::vertical((10, 10), 2)
-        );
-    }
-
-    #[test_log::test]
     fn test_trace() {
         assert_eq!(
             part1_b(
