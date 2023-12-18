@@ -215,7 +215,7 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
 type Point = (i64, i64);
 
 fn rectangle_area(tl: Point, br: Point) -> usize {
-  ((br.0 + 1 - tl.0)* (br.1 + 1 - tl.1)) as usize
+    ((br.0 + 1 - tl.0) * (br.1 + 1 - tl.1)) as usize
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -228,29 +228,27 @@ impl Line {
     fn horizontal(tl: Point, d: usize) -> Self {
         Self {
             tl,
-            br: (tl.0, tl.1 + d as i64)
+            br: (tl.0, tl.1 + d as i64),
         }
     }
 
     fn vertical(tl: Point, d: usize) -> Self {
         Self {
             tl,
-            br: (tl.0 + d as i64, tl.1)
+            br: (tl.0 + d as i64, tl.1),
         }
     }
-    
+
     fn is_horizontal(&self) -> bool {
         self.tl.0 == self.br.0
     }
-    
+
     fn is_vertical(&self) -> bool {
         self.tl.1 == self.br.1
     }
-    
-    
+
     fn contains(&self, p: (i64, i64)) -> bool {
-        (self.tl.0..=self.br.0).contains(&p.0) &&
-        (self.tl.1..=self.br.1).contains(&p.1)
+        (self.tl.0..=self.br.0).contains(&p.0) && (self.tl.1..=self.br.1).contains(&p.1)
     }
 
     fn start(&self) -> (i64, i64) {
@@ -274,7 +272,7 @@ impl Line {
     fn with_end_moved_to(&self, br: (i64, i64)) -> Self {
         // MUST keep only horizontal/vertical
         assert!((br.0 == self.tl.0) || (br.1 == self.tl.1));
-        Self {tl: self.tl, br }
+        Self { tl: self.tl, br }
     }
 }
 
@@ -416,8 +414,13 @@ impl DigMap2 {
         let h = self.horizontal_with_end_at(top_left);
         let v_left = self.vertical_with_end_at(top_left);
         let v_right = self.vertical_with_end_at(h.end());
-        
-        trace!("BORDERS:\n  H: {:?}\n  V: {:?}\n  V: {:?}", h, v_left, v_right);
+
+        trace!(
+            "BORDERS:\n  H: {:?}\n  V: {:?}\n  V: {:?}",
+            h,
+            v_left,
+            v_right
+        );
         assert!(v_left.start() == h.start());
         assert!(v_right.start() == h.end());
         assert!(v_left != v_right);
@@ -447,8 +450,7 @@ impl DigMap2 {
                 // add them back:
                 //   - new top horizontal
                 //   - shorter right-side vertical
-                let shorter_right =
-                    v_right.with_start_moved_to((h_low.end().0, v_right.start().1));
+                let shorter_right = v_right.with_start_moved_to((h_low.end().0, v_right.start().1));
                 self.lines.insert(shorter_right);
                 size_removed += rectangle_area(top_left, shorter_right.start());
 
