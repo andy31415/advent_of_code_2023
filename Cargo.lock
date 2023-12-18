@@ -168,7 +168,13 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "glam",
+ "itertools 0.12.0",
+ "nom",
+ "nom-supreme",
+ "nom_locate",
+ "test-log",
+ "trace",
  "tracing",
  "tracing-subscriber",
 ]
@@ -674,6 +680,12 @@ name = "gimli"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
+
+[[package]]
+name = "glam"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5418c17512bdf42730f9032c74e1ae39afc408745ebb2acf72fbc4691c17945"
 
 [[package]]
 name = "glob"

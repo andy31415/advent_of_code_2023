@@ -21,7 +21,13 @@ dhat-heap = []
 divan = {workspace=true}
 dhat = {workspace=true}
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing-subscriber.workspace = true
+nom.workspace = true
+nom-supreme = "0.8.0"
+nom_locate = "4.2.0"
+test-log = { version = "0.2.14", features = ["log", "trace"] }
+trace = "0.1.7"
+glam.workspace = true
 
 [dev-dependencies]
 itertools = {workspace=true}
