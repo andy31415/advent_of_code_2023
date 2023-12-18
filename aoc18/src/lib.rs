@@ -119,7 +119,7 @@ impl<'a> DigMap<'a> {
     }
 
     fn hole_at(&self, p: (i64, i64)) -> bool {
-        return self.holes.contains_key(&p);
+        self.holes.contains_key(&p)
     }
 
     fn find_inside(&self) -> (i64, i64) {
@@ -222,10 +222,6 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
 
 type Point = (i64, i64);
 
-fn rectangle_area(tl: Point, br: Point) -> usize {
-    ((br.0 + 1 - tl.0) * (br.1 + 1 - tl.1)) as usize
-}
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 struct Line {
     tl: Point,
@@ -267,16 +263,6 @@ impl Line {
         self.tl.1 == self.br.1
     }
 
-    fn row(&self) -> i64 {
-        assert!(self.is_horizontal());
-        self.tl.0
-    }
-
-    fn col(&self) -> i64 {
-        assert!(self.is_vertical());
-        self.tl.1
-    }
-
     fn contains(&self, p: (i64, i64)) -> bool {
         (self.tl.0..=self.br.0).contains(&p.0) && (self.tl.1..=self.br.1).contains(&p.1)
     }
@@ -288,22 +274,6 @@ impl Line {
     fn end(&self) -> (i64, i64) {
         self.br
     }
-
-    fn distance(&self) -> usize {
-        ((self.br.0 - self.tl.0) + (self.br.1 - self.tl.1) + 1) as usize
-    }
-
-    fn with_start_moved_to(&self, tl: (i64, i64)) -> Self {
-        // MUST keep only horizontal/vertical
-        assert!((tl.0 == self.br.0) || (tl.1 == self.br.1));
-        Self { tl, br: self.br }
-    }
-
-    fn with_end_moved_to(&self, br: (i64, i64)) -> Self {
-        // MUST keep only horizontal/vertical
-        assert!((br.0 == self.tl.0) || (br.1 == self.tl.1));
-        Self { tl: self.tl, br }
-    }
 }
 
 // A dig map that contains a list of lines (since the lines may be huge)
@@ -311,12 +281,6 @@ impl Line {
 struct DigMap2 {
     lines: HashSet<Line>,
     points: Vec<(i64, i64)>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-enum InsideIs {
-    Right,
-    Left,
 }
 
 impl DigMap2 {
@@ -347,7 +311,7 @@ impl DigMap2 {
             .map(|r| {
                 (cl..=ch)
                     .map(|c| {
-                        if self.on_some_line((r, c).into()) {
+                        if self.on_some_line((r, c)) {
                             '#'
                         } else {
                             '.'
@@ -376,13 +340,13 @@ impl DigMap2 {
                 Direction::Up => {
                     worker_pos.0 -= instruction.distance;
                     self.lines.insert(Line::vertical(
-                        worker_pos.into(),
+                        worker_pos,
                         instruction.distance as usize,
                     ));
                 }
                 Direction::Down => {
                     self.lines.insert(Line::vertical(
-                        worker_pos.into(),
+                        worker_pos,
                         instruction.distance as usize,
                     ));
                     worker_pos.0 += instruction.distance;
@@ -390,13 +354,13 @@ impl DigMap2 {
                 Direction::Left => {
                     worker_pos.1 -= instruction.distance;
                     self.lines.insert(Line::horizontal(
-                        worker_pos.into(),
+                        worker_pos,
                         instruction.distance as usize,
                     ));
                 }
                 Direction::Right => {
                     self.lines.insert(Line::horizontal(
-                        worker_pos.into(),
+                        worker_pos,
                         instruction.distance as usize,
                     ));
                     worker_pos.1 += instruction.distance;
@@ -535,7 +499,6 @@ pub fn part2(input: &str) -> usize {
     for i in parse_input(input) {
         adjusted.push(i.color_to_distance());
     }
-    eprintln!("A: {:?}", adjusted);
 
     let mut map = DigMap2::default();
     map.perform_instructions(&adjusted);
@@ -559,46 +522,46 @@ mod tests {
     #[test_log::test]
     fn test_move_start() {
         assert_eq!(
-            Line::horizontal((10, 10).into(), 5).with_start_moved_to((10, 5)),
-            Line::horizontal((10, 5).into(), 10)
+            Line::horizontal((10, 10), 5).with_start_moved_to((10, 5)),
+            Line::horizontal((10, 5), 10)
         );
 
         assert_eq!(
-            Line::horizontal((10, 10).into(), 5).with_start_moved_to((10, 12)),
-            Line::horizontal((10, 12).into(), 3)
+            Line::horizontal((10, 10), 5).with_start_moved_to((10, 12)),
+            Line::horizontal((10, 12), 3)
         );
 
         assert_eq!(
-            Line::vertical((10, 10).into(), 5).with_start_moved_to((5, 10)),
-            Line::vertical((5, 10).into(), 10)
+            Line::vertical((10, 10), 5).with_start_moved_to((5, 10)),
+            Line::vertical((5, 10), 10)
         );
 
         assert_eq!(
-            Line::vertical((10, 10).into(), 5).with_start_moved_to((12, 10)),
-            Line::vertical((12, 10).into(), 3)
+            Line::vertical((10, 10), 5).with_start_moved_to((12, 10)),
+            Line::vertical((12, 10), 3)
         );
     }
 
     #[test_log::test]
     fn test_move_end() {
         assert_eq!(
-            Line::horizontal((10, 10).into(), 5).with_end_moved_to((10, 20)),
-            Line::horizontal((10, 10).into(), 10)
+            Line::horizontal((10, 10), 5).with_end_moved_to((10, 20)),
+            Line::horizontal((10, 10), 10)
         );
 
         assert_eq!(
-            Line::horizontal((10, 10).into(), 5).with_end_moved_to((10, 12)),
-            Line::horizontal((10, 10).into(), 2)
+            Line::horizontal((10, 10), 5).with_end_moved_to((10, 12)),
+            Line::horizontal((10, 10), 2)
         );
 
         assert_eq!(
-            Line::vertical((10, 10).into(), 5).with_end_moved_to((20, 10)),
-            Line::vertical((10, 10).into(), 10)
+            Line::vertical((10, 10), 5).with_end_moved_to((20, 10)),
+            Line::vertical((10, 10), 10)
         );
 
         assert_eq!(
-            Line::vertical((10, 10).into(), 5).with_end_moved_to((12, 10)),
-            Line::vertical((10, 10).into(), 2)
+            Line::vertical((10, 10), 5).with_end_moved_to((12, 10)),
+            Line::vertical((10, 10), 2)
         );
     }
 
