@@ -7,12 +7,9 @@ use std::{
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::{
-        complete::{line_ending, one_of},
-        is_alphanumeric,
-    },
+    character::complete::line_ending,
     combinator::value,
-    multi::{many1, separated_list1},
+    multi::separated_list1,
     sequence::{delimited, tuple},
     IResult, Parser,
 };
@@ -187,7 +184,7 @@ pub fn part1(input: &str) -> usize {
     map.dug_out_depth()
 }
 
-pub fn part2(input: &str) -> usize {
+pub fn part2(_input: &str) -> usize {
     // TODO: implement
     0
 }
