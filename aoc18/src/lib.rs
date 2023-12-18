@@ -521,9 +521,16 @@ pub fn part1_b(input: &str) -> u64 {
     map.area_from_points()
 }
 
-pub fn part2(_input: &str) -> usize {
-    // TODO: implement
-    0
+pub fn part2(input: &str) -> usize {
+    let mut adjusted = Vec::new();
+    for i in parse_input(input) {
+        adjusted.push(i.color_to_distance());
+    }
+    eprintln!("A: {:?}", adjusted);
+
+    let mut map = DigMap2::default();
+    map.perform_instructions(&adjusted);
+    map.area_from_points() as usize
 }
 
 #[cfg(test)]
