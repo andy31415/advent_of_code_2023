@@ -305,11 +305,9 @@ struct DigMap2 {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-enum Quadrant {
-    NW,
-    NE,
-    SE,
-    SW,
+enum InsideIs {
+    Right,
+    Left,
 }
 
 impl DigMap2 {
@@ -423,32 +421,82 @@ impl DigMap2 {
         let mut result = Vec::new();
         // once top-let is computed, the are MUST be lower-right.
         result.push(top_left);
-        let mut inside = Quadrant::SE;
-        
         let actual = self.points.clone();
-        let idx = actual.iter().position(|p| p == &top_left).expect("top_left in iterator");
+        let idx = actual
+            .iter()
+            .position(|p| p == &top_left)
+            .expect("top_left in iterator");
         let (l, r) = actual.split_at(idx);
-        
+
         let mut reordered = r.iter().collect::<Vec<_>>();
         for x in l {
             reordered.push(x);
         }
+        reordered.push(reordered.first().expect("not empty"));
         trace!("Reordered: {:?}", &reordered);
+
+        let mut line_data = Vec::new();
+
+        for (f, t) in reordered.iter().zip(reordered.iter().skip(1)) {
+            let d = if f.0 == t.0 {
+                // horizontal
+                if f.1 < t.1 {
+                    Direction::Right
+                } else {
+                    Direction::Left
+                }
+            } else {
+                assert_eq!(f.1, t.1);
+                if f.0 < t.0 {
+                    Direction::Down
+                } else {
+                    Direction::Up
+                }
+            };
+            line_data.push((f, t, d));
+        }
+
+        // inside is ALWAYS to the right of the current line. Always insert the end
+        for ((_, (r, c), dc), (_, _, dn)) in line_data.iter().zip(line_data.iter().skip(1)) {
+            // figure out where we end
+            match (dc, dn) {
+                (Direction::Up, Direction::Left) => result.push((*r + 1, *c)),
+                (Direction::Up, Direction::Right) => result.push((*r, *c)),
+                (Direction::Down, Direction::Left) => result.push((*r + 1, *c + 1)),
+                (Direction::Down, Direction::Right) => result.push((*r, *c + 1)),
+                (Direction::Left, Direction::Up) => result.push((*r + 1, *c)),
+                (Direction::Left, Direction::Down) => result.push((*r + 1, *c + 1)),
+                (Direction::Right, Direction::Up) => result.push((*r, *c)),
+                (Direction::Right, Direction::Down) => result.push((*r, *c + 1)),
+                _ => panic!("Invalid combination"),
+            }
+        }
+
+        trace!("POINTS: {:?}", result);
 
         // at this point start moving and decide where the area resides
         result
     }
 
     fn area_from_points(&self) -> u64 {
-        let d = self
-            .compute_points()
+        let points = self.compute_points();
+
+        let d = points
             .iter()
-            .zip(self.points.iter().skip(1).chain(&[self.points[0]]))
-            .map(|(a, b)| (a.0 * b.1).abs_diff(b.0 * b.1))
-            .sum::<u64>();
+            .zip(points.iter().skip(1).chain(&[points[0]]))
+            .inspect(|d| {
+                trace!("2P: {:?}", d);
+            })
+            .map(|(a, b)| (a.1 * b.0 - b.1 * a.0))
+            .inspect(|d| {
+                trace!(" ==> {:?}", d);
+            })
+            .sum::<i64>();
+
+        trace!("FINAL SUM: {}", d);
 
         assert!(d % 2 == 0);
-        d / 2
+        (d / 2) as u64
     }
 }
 
@@ -559,6 +607,40 @@ U 6 (#123123)
                 .trim()
             ),
             54
+        );
+    }
+
+    #[test_log::test]
+    fn test_square1() {
+        assert_eq!(
+            part1_b(
+                "
+R 2 (#123123)
+D 2 (#123123)
+L 2 (#123123)
+U 2 (#123123)
+        "
+                .trim()
+            ),
+            9
+        );
+    }
+
+    #[test_log::test]
+    fn test_simple1() {
+        assert_eq!(
+            part1_b(
+                "
+R 4 (#123123)
+D 4 (#123123)
+L 2 (#123123)
+U 2 (#123123)
+L 2 (#123123)
+U 2 (#123123)
+        "
+                .trim()
+            ),
+            21
         );
     }
 
