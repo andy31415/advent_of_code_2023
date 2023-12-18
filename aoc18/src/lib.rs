@@ -54,9 +54,18 @@ struct DigInstruction<'a> {
 
 impl<'a> DigInstruction<'a> {
     fn color_to_distance(&self) -> Self {
+        // COLOR is hex:
+        let (col, dir) = self.color.split_at(self.color.len() - 1);
+        
         Self {
-            direction: self.direction,
-            distance: i64::from_str_radix(self.color, 16).expect("valid"),
+            direction: match dir {
+                "0" => Direction::Right,
+                "1" => Direction::Down,
+                "2" => Direction::Left,
+                "3" => Direction::Up,
+                _ => panic!("INVALID: {:?}", self),
+            },
+            distance: i64::from_str_radix(col, 16).expect("valid"),
             color: "",
         }
     }
@@ -524,6 +533,7 @@ pub fn part1_b(input: &str) -> u64 {
 pub fn part2(input: &str) -> usize {
     let mut adjusted = Vec::new();
     for i in parse_input(input) {
+        eprintln!("A: {:?}", i);
         adjusted.push(i.color_to_distance());
     }
     eprintln!("A: {:?}", adjusted);
