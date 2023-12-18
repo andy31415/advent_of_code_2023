@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashSet},
     fmt::{Display, Write},
+    hash::Hash,
     ops::Add,
 };
 
@@ -14,7 +15,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing::{info, instrument};
+use tracing::{info, instrument, trace};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Direction {
@@ -57,12 +58,9 @@ impl<'a> DigInstruction<'a> {
             direction: self.direction,
             distance: i64::from_str_radix(self.color, 16).expect("valid"),
             color: "",
-
         }
     }
 }
-
-
 
 struct DigMap<'a> {
     // locations of holes
@@ -110,24 +108,25 @@ impl<'a> DigMap<'a> {
             }
         }
     }
-    
-    fn hole_at(&self, p: (i64, i64)) -> bool {
-        return self.holes.contains_key(&p)
-    }
-    
-    fn find_inside(&self) -> (i64, i64) {
-       for row in self.row_range.0..self.row_range.1 {
-           for col in self.col_range.0..self.col_range.1 {
-               let p = (row, col);
 
-            if !self.hole_at(Direction::Left + p)
-                && self.hole_at(p)
-                && !self.hole_at(Direction::Right + p) {
+    fn hole_at(&self, p: (i64, i64)) -> bool {
+        return self.holes.contains_key(&p);
+    }
+
+    fn find_inside(&self) -> (i64, i64) {
+        for row in self.row_range.0..self.row_range.1 {
+            for col in self.col_range.0..self.col_range.1 {
+                let p = (row, col);
+
+                if !self.hole_at(Direction::Left + p)
+                    && self.hole_at(p)
+                    && !self.hole_at(Direction::Right + p)
+                {
                     return Direction::Right + p;
+                }
             }
-          }
-       }
-       panic!("If all is stairs, this is not implemented");
+        }
+        panic!("If all is stairs, this is not implemented");
     }
 
     fn flood_fill_inside(&mut self) {
@@ -137,8 +136,13 @@ impl<'a> DigMap<'a> {
 
         while let Some(p) = fills.pop() {
             seen.insert(p);
-            
-            for d in [Direction::Left, Direction::Right, Direction::Up, Direction::Down] {
+
+            for d in [
+                Direction::Left,
+                Direction::Right,
+                Direction::Up,
+                Direction::Down,
+            ] {
                 let other = d + p;
                 if self.hole_at(other) {
                     continue;
@@ -207,6 +211,202 @@ fn parse_input(input: &str) -> Vec<DigInstruction> {
     result
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+struct StartPoint {
+    row: i64,
+    col: i64,
+}
+
+impl From<(i64, i64)> for StartPoint {
+    fn from(value: (i64, i64)) -> Self {
+        Self {
+            row: value.0,
+            col: value.1,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+enum Line {
+    Horizontal(StartPoint, usize),
+    Vertical(StartPoint, usize),
+}
+
+impl Line {
+    fn start(&self) -> StartPoint {
+        match self {
+            Line::Horizontal(p, _) | Line::Vertical(p, _) => *p,
+        }
+    }
+
+    fn end(&self) -> StartPoint {
+        match self {
+            Line::Horizontal(p, d) => (p.row, p.col + *d as i64).into(),
+            Line::Vertical(p, d) => (p.row + *d as i64, p.col).into(),
+        }
+    }
+
+    fn distance(&self) -> usize {
+        match self {
+            Line::Horizontal(_, d) | Line::Vertical(_, d) => *d,
+        }
+    }
+
+    fn with_start_moved_to(&self, p: (i64, i64)) -> Self {
+        match self {
+            Line::Horizontal(StartPoint { row: r, col: c }, d) if *r == p.0 => {
+                Line::Horizontal(p.into(), (*d as i64 + (c - p.1)) as usize)
+            }
+            Line::Vertical(StartPoint { row: r, col: c }, d) if *c == p.1 => {
+                Line::Vertical(p.into(), (*d as i64 + (r - p.0)) as usize)
+            }
+            _ => panic!("Illegal start move: {:?}, {:?}", self, p),
+        }
+    }
+
+    fn with_end_moved_to(&self, p: (i64, i64)) -> Self {
+        match self {
+            Line::Horizontal(StartPoint { row: r, col: c }, _) if *r == p.0 => {
+                Line::Horizontal((*r, *c).into(), (p.1 - c) as usize)
+            }
+            Line::Vertical(StartPoint { row: r, col: c }, _) if *c == p.1 => {
+                Line::Vertical((*r, *c).into(), (p.0 - r) as usize)
+            }
+            _ => panic!("Illegal end move: {:?}, {:?}", self, p),
+        }
+    }
+
+}
+
+// A dig map that contains a list of lines (since the lines may be huge)
+#[derive(Debug, Default)]
+struct DigMap2 {
+    lines: HashSet<Line>,
+}
+
+impl DigMap2 {
+    fn perform_instructions(&mut self, instructions: &[DigInstruction]) {
+        let mut worker_pos = (0, 0);
+        for instruction in instructions {
+            match instruction.direction {
+                Direction::Up => {
+                    worker_pos.0 -= instruction.distance;
+                    self.lines.insert(Line::Vertical(
+                        worker_pos.into(),
+                        instruction.distance as usize,
+                    ));
+                }
+                Direction::Down => {
+                    self.lines.insert(Line::Vertical(
+                        worker_pos.into(),
+                        instruction.distance as usize,
+                    ));
+                    worker_pos.0 += instruction.distance;
+                }
+                Direction::Left => {
+                    worker_pos.1 -= instruction.distance;
+                    self.lines.insert(Line::Horizontal(
+                        worker_pos.into(),
+                        instruction.distance as usize,
+                    ));
+                }
+                Direction::Right => {
+                    self.lines.insert(Line::Horizontal(
+                        worker_pos.into(),
+                        instruction.distance as usize,
+                    ));
+                    worker_pos.1 += instruction.distance;
+                }
+            }
+        }
+    }
+
+    fn horizontal_with_end_at(&self, p: StartPoint) -> Line {
+        *self
+            .lines
+            .iter()
+            .filter(|l| matches!(l, Line::Horizontal(_, _)))
+            .find(|l| l.start() == p || l.end() == p)
+            .expect("has line with ending")
+    }
+
+    fn vertical_with_end_at(&self, p: StartPoint) -> Line {
+        *self
+            .lines
+            .iter()
+            .filter(|l| matches!(l, Line::Vertical(_, _)))
+            .find(|l| l.start() == p || l.end() == p)
+            .expect("has line with ending")
+    }
+
+    fn remove_rectangle(&mut self) -> Option<usize> {
+        // Performs in order:
+        // - find the top-left most point in the map
+        // - find the rectangle to the rigth of it
+        // - remove that rectangle (and re-make lines out of it)
+        //
+        let top_left = self
+            .lines
+            .iter()
+            .map(|l| match l {
+                Line::Horizontal(p, _) | Line::Vertical(p, _) => p,
+            })
+            .min_by(|a, b| {
+                if a.row != b.row {
+                    a.row.cmp(&b.row)
+                } else {
+                    a.col.cmp(&b.col)
+                }
+            })
+            .expect("has lines");
+        trace!("TOP-left: {:?}", top_left);
+
+        let h = self.horizontal_with_end_at(*top_left);
+        let v_left = self.vertical_with_end_at(*top_left);
+        trace!("H: {:?}, V: {:?}", h, v_left);
+
+        let v_right = self.vertical_with_end_at(h.end());
+        trace!("V2: {:?}", v_right);
+
+        // At this point we have:
+        // Horizontal: size of the full cut
+        // Vertical: 2 (maybe different) lengths, for which the shortest MUST be cut
+        match v_left.distance().cmp(&v_right.distance()) {
+            std::cmp::Ordering::Equal => {
+                // They are of the same length. we need to merge SEVERAL lines
+                todo!();
+            }
+            std::cmp::Ordering::Less => {
+                // left side is shorter
+                let h_low = self.horizontal_with_end_at(v_left.end());
+
+                // remove the sides of the rectangle
+                self.lines.remove(&h);
+                self.lines.remove(&v_left);
+                self.lines.remove(&v_right);
+                self.lines.remove(&h_low);
+
+                // add them back:
+                //   - new top horizontal
+                //   - shorter right-side vertical
+                let updated_h = h_low.with_end_moved_to((h_low.start().row, v_right.start().col));
+                trace!("Extended horizontal: {:?}", updated_h);
+                self.lines.insert(updated_h);
+
+                let shorter_right = v_right.with_start_moved_to((h_low.start().row, v_right.start().col));
+                trace!("Shorter right: {:?}", updated_h);
+                self.lines.insert(shorter_right);
+            }
+            std::cmp::Ordering::Greater => {
+                // right side is shorter
+                todo!();
+            }
+        }
+
+        None
+    }
+}
+
 #[instrument(skip_all)]
 pub fn part1(input: &str) -> usize {
     let mut map = DigMap::new();
@@ -216,6 +416,20 @@ pub fn part1(input: &str) -> usize {
 
     info!("After dig:\n{}", &map);
     map.dug_out_depth()
+}
+
+#[instrument(skip_all)]
+pub fn part1_b(input: &str) -> usize {
+    let mut map = DigMap2::default();
+    map.perform_instructions(&parse_input(input));
+    info!("DigMap:\n{:?}", &map);
+
+    let mut total = 0;
+
+    while let Some(n) = map.remove_rectangle() {
+        total += n;
+    }
+    total
 }
 
 pub fn part2(_input: &str) -> usize {
@@ -233,8 +447,55 @@ mod tests {
     }
 
     #[test_log::test]
+    fn test_part1_b() {
+        assert_eq!(part1_b(include_str!("../example.txt")), 62);
+    }
+
+
+    #[test_log::test]
+    fn test_move_start() {
+        assert_eq!(
+            Line::Horizontal((10,10).into(), 5).with_start_moved_to((10, 5)),
+            Line::Horizontal((10,5).into(), 10));
+
+        assert_eq!(
+            Line::Horizontal((10,10).into(), 5).with_start_moved_to((10, 12)),
+            Line::Horizontal((10,12).into(), 3));
+
+        assert_eq!(
+            Line::Vertical((10,10).into(), 5).with_start_moved_to((5,10)),
+            Line::Vertical((5,10).into(), 10));
+
+        assert_eq!(
+            Line::Vertical((10,10).into(), 5).with_start_moved_to((12, 10)),
+            Line::Vertical((12,10).into(), 3));
+    }
+
+    #[test_log::test]
+    fn test_move_end() {
+        assert_eq!(
+            Line::Horizontal((10,10).into(), 5).with_end_moved_to((10, 20)),
+            Line::Horizontal((10,10).into(), 10));
+
+        assert_eq!(
+            Line::Horizontal((10,10).into(), 5).with_end_moved_to((10, 12)),
+            Line::Horizontal((10,10).into(), 2));
+
+        assert_eq!(
+            Line::Vertical((10,10).into(), 5).with_end_moved_to((20, 10)),
+            Line::Vertical((10,10).into(), 10));
+
+        assert_eq!(
+            Line::Vertical((10,10).into(), 5).with_end_moved_to((12, 10)),
+            Line::Vertical((10,10).into(), 2));
+
+    }
+
+    #[test_log::test]
     fn test_trace() {
-        assert_eq!(part1("
+        assert_eq!(
+            part1(
+                "
 R 2 (#123123)
 D 2 (#123123)
 R 2 (#123123)
@@ -243,11 +504,15 @@ R 3 (#123123)
 D 4 (#123123)
 L 7 (#123123)
 U 4 (#123123)
-        ".trim()), 38);
+        "
+                .trim()
+            ),
+            38
+        );
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2(include_str!("../example.txt")), 952408144115);
     }
 }
