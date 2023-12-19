@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use nom::{
     branch::alt,
@@ -22,14 +22,40 @@ enum Variable {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct Part {
-    x: i32,
-    m: i32,
-    a: i32,
-    s: i32,
+    x: u64,
+    m: u64,
+    a: u64,
+    s: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+struct PartRange {
+    x: (u64, u64), // NOT including the upper bound
+    m: (u64, u64),
+    a: (u64, u64),
+    s: (u64, u64),
+}
+
+impl Display for PartRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "PR[x: {}..{}, m: {}..{}, a: {}..{}, s: {}..{}]",
+            self.x.0, self.x.1, self.m.0, self.m.1, self.a.0, self.a.1, self.s.0, self.s.1
+        ))
+    }
+}
+
+impl PartRange {
+    fn variations(&self) -> usize {
+        ((self.x.1 - self.x.0)
+            * (self.m.1 - self.m.0)
+            * (self.a.1 - self.a.0)
+            * (self.s.1 - self.s.0)) as usize
+    }
 }
 
 impl Part {
-    fn value(&self, v: Variable) -> i32 {
+    fn value(&self, v: Variable) -> u64 {
         match v {
             Variable::X => self.x,
             Variable::M => self.m,
@@ -53,7 +79,7 @@ enum Compare {
 struct Condition {
     variable: Variable,
     compare: Compare,
-    value: i32,
+    value: u64,
 }
 
 impl Condition {
@@ -64,6 +90,75 @@ impl Condition {
             Compare::GT => v > self.value,
             Compare::LT => v < self.value,
         }
+    }
+
+    /// Move the given range into accept/reject
+    fn split_range(&self, r: (u64, u64)) -> (Option<(u64, u64)>, Option<(u64, u64)>) {
+        if self.value < r.0 {
+            // all values are larger than the target
+            return match self.compare {
+                Compare::GT => (Some(r), None), // expect larger, so accept
+                Compare::LT => (None, Some(r)), // expect smaller, so reject
+            };
+        }
+        if self.value >= r.1 {
+            // all values are smaller than the target
+            return match self.compare {
+                Compare::GT => (None, Some(r)), // expect larger, so reject
+                Compare::LT => (Some(r), None), // expect smaller, so accept
+            };
+        }
+
+        // need to split the range, but also take into consideration
+        // the edges
+        match self.compare {
+            Compare::GT => (
+                Some((self.value + 1, r.1)), // accept all greater than
+                Some((r.0, self.value + 1)), // reject all less or equal
+            ),
+            Compare::LT => (
+                Some((r.0, self.value)), // accept all less
+                Some((self.value, r.1)), // reject all larger
+            ),
+        }
+    }
+
+    /// Given an input range, split it into MATCHES vs NOT MATCHING
+    fn split(&self, part: &PartRange) -> (Option<PartRange>, Option<PartRange>) {
+        let (lx, rx) = if self.variable == Variable::X {
+            self.split_range(part.x)
+        } else {
+            (Some(part.x), Some(part.x))
+        };
+
+        let (lm, rm) = if self.variable == Variable::M {
+            self.split_range(part.m)
+        } else {
+            (Some(part.m), Some(part.m))
+        };
+
+        let (la, ra) = if self.variable == Variable::A {
+            self.split_range(part.a)
+        } else {
+            (Some(part.a), Some(part.a))
+        };
+
+        let (ls, rs) = if self.variable == Variable::S {
+            self.split_range(part.s)
+        } else {
+            (Some(part.s), Some(part.s))
+        };
+
+        (
+            match (lx, lm, la, ls) {
+                (Some(x), Some(m), Some(a), Some(s)) => Some(PartRange { x, m, a, s }),
+                _ => None,
+            },
+            match (rx, rm, ra, rs) {
+                (Some(x), Some(m), Some(a), Some(s)) => Some(PartRange { x, m, a, s }),
+                _ => None,
+            },
+        )
     }
 }
 
@@ -76,6 +171,13 @@ struct Rule<'a> {
 impl<'a> Rule<'a> {
     fn matches(&self, part: &Part) -> bool {
         self.condition.map(|c| c.matches(part)).unwrap_or(true)
+    }
+
+    fn split(&self, part: &PartRange) -> (Option<PartRange>, Option<PartRange>) {
+        match self.condition {
+            Some(c) => c.split(part),
+            None => (Some(*part), None),
+        }
     }
 }
 
@@ -93,6 +195,22 @@ impl<'a> Workflow<'a> {
             }
         }
         panic!("Could not match {:?} in {:?}", part, self);
+    }
+
+    fn split(&self, part: &PartRange) -> Vec<(&'a str, PartRange)> {
+        let mut result = Vec::new();
+        let mut remaining = *part;
+        for rule in self.rules.iter() {
+            let (a, r) = rule.split(&remaining);
+            if let Some(r) = a {
+                result.push(((rule.target), r));
+            }
+            remaining = match r {
+                Some(r) => r,
+                None => break,
+            };
+        }
+        result
     }
 }
 
@@ -141,6 +259,31 @@ impl<'a> Solver<'a> {
             }
         }
     }
+
+    fn all_accepted(&self, part: &PartRange) -> Vec<PartRange> {
+        // go through all rules until nothing is left
+        let mut result = Vec::new();
+        let mut tasks = Vec::new();
+
+        tasks.push((self.start, *part));
+
+        while let Some(task) = tasks.pop() {
+            trace!("Next task: {} with {}", task.0.name, task.1);
+
+            for (target, r) in task.0.split(&task.1) {
+                trace!("  Split {} -> {}", r, target);
+                match target.try_into() {
+                    Ok(FinalState::Accept) => result.push(r),
+                    Ok(FinalState::Reject) => (),
+
+                    // not a final state, keep going
+                    Err(_) => tasks.push((self.workflows.get(target).expect("valid target"), r)),
+                }
+            }
+        }
+
+        result
+    }
 }
 
 impl<'a> From<&'a Input<'a>> for Solver<'a> {
@@ -164,7 +307,7 @@ fn condition(s: &str) -> IResult<&str, Condition> {
             value(Variable::S, tag("s")),
         )),
         alt((value(Compare::LT, tag("<")), value(Compare::GT, tag(">")))),
-        nom::character::complete::i32,
+        nom::character::complete::u64,
     ))
     .map(|(variable, compare, value)| Condition {
         variable,
@@ -211,16 +354,16 @@ fn input(s: &str) -> Input {
 
 fn part(s: &str) -> IResult<&str, Part> {
     tuple((
-        nom::character::complete::i32
+        nom::character::complete::u64
             .preceded_by(tag("x="))
             .terminated(tag(",")),
-        nom::character::complete::i32
+        nom::character::complete::u64
             .preceded_by(tag("m="))
             .terminated(tag(",")),
-        nom::character::complete::i32
+        nom::character::complete::u64
             .preceded_by(tag("a="))
             .terminated(tag(",")),
-        nom::character::complete::i32.preceded_by(tag("s=")),
+        nom::character::complete::u64.preceded_by(tag("s=")),
     ))
     .preceded_by(tag("{"))
     .terminated(tag("}"))
@@ -246,9 +389,22 @@ pub fn part1(s: &str) -> usize {
     total
 }
 
-pub fn part2(_s: &str) -> usize {
-    // TODO: implement
-    0
+pub fn part2(s: &str) -> usize {
+    let data = input(s);
+    let solver: Solver = (&data).into();
+
+    let meta_part = PartRange {
+        x: (1, 4001),
+        m: (1, 4001),
+        a: (1, 4001),
+        s: (1, 4001),
+    };
+
+    solver
+        .all_accepted(&meta_part)
+        .iter()
+        .map(|p| p.variations())
+        .sum()
 }
 
 #[cfg(test)]
@@ -294,8 +450,8 @@ mod tests {
         assert_eq!(part1(include_str!("../example.txt")), 19114);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2(include_str!("../example.txt")), 167409079868000);
     }
 }
