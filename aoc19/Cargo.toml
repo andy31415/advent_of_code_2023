@@ -27,6 +27,7 @@ nom-supreme = "0.8.0"
 nom_locate = "4.2.0"
 trace = "0.1.7"
 rstest.workspace = true
+test-log = { version = "0.2.14", features = ["log", "trace"] }
 
 [dev-dependencies]
 itertools = {workspace=true}

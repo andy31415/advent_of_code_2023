@@ -190,6 +190,7 @@ dependencies = [
  "nom-supreme",
  "nom_locate",
  "rstest",
+ "test-log",
  "trace",
  "tracing",
  "tracing-subscriber",
