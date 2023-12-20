@@ -10,7 +10,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing::trace;
+use tracing::{trace, info};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum Operation {
@@ -302,7 +302,7 @@ pub fn part2(input: &str) -> usize {
     for target in input.modules.values().filter(|m| m.targets.contains(&"hb"))
         .map(|m| m.name) {
        // How costry is it to turn target to "High"
-       eprintln!("WAITING FOR HIGH: {:?}", target);
+       info!("WAITING FOR HIGH: {:?}", target);
        let mut solver: Solver = input.clone().into();
        
        solver.stop_on = Some((target, PulseState::Low));
@@ -315,7 +315,7 @@ pub fn part2(input: &str) -> usize {
        to_high.push(cnt);
     }
     
-    eprintln!("TO_HIGH: {:?}", to_high);
+    info!("TO_HIGH: {:?}", to_high);
     
     lcm(to_high)
 }
