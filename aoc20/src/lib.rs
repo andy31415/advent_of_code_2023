@@ -10,7 +10,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use tracing::{trace, info};
+use tracing::{info, trace};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum Operation {
@@ -59,8 +59,7 @@ struct Solver<'a> {
     input: Input<'a>,
     state: HashMap<&'a str, ModuleState<'a>>,
     stopped: bool,
-    stop_on: Option<(&'a str, PulseState)>
-    
+    stop_on: Option<(&'a str, PulseState)>,
 }
 
 impl<'a> Solver<'a> {
@@ -79,14 +78,13 @@ impl<'a> Solver<'a> {
         }
 
         while let Some((source, target, pulse)) = instructions.pop_front() {
-            
             if let Some((st, sp)) = self.stop_on {
                 if (target == st) && (pulse == sp) {
                     self.stopped = true;
                     break;
                 }
             }
-            
+
             match pulse {
                 PulseState::Low => low_count += 1,
                 PulseState::High => high_count += 1,
@@ -190,7 +188,12 @@ impl<'a> From<Input<'a>> for Solver<'a> {
             }
         }
 
-        Self { input, state, stopped: false, stop_on: None }
+        Self {
+            input,
+            state,
+            stopped: false,
+            stop_on: None,
+        }
     }
 }
 
@@ -266,10 +269,10 @@ pub fn lcm(mut x: Vec<usize>) -> usize {
 
     while let Some(a) = x.pop() {
         let b = v;
-        
+
         let mut ga = a;
         let mut gb = b;
-        
+
         let gcd = 'calc: loop {
             if ga > gb {
                 ga = ga % gb;
@@ -284,40 +287,50 @@ pub fn lcm(mut x: Vec<usize>) -> usize {
             }
         };
 
-        v = (a*b) / gcd;
+        v = (a * b) / gcd;
     }
 
-   v
+    v
 }
 
 pub fn part2(input: &str) -> usize {
     let input = parse_input(input);
-    
+
     // Manual check:
     //  rx gets value from &hb
     //  hb gets values from:
     //     - js, zb, bs, rr
-    let mut to_high = Vec::new();
+    let mut to_low_output = Vec::new();
 
-    for target in input.modules.values().filter(|m| m.targets.contains(&"hb"))
-        .map(|m| m.name) {
-       // How costry is it to turn target to "High"
-       info!("WAITING FOR HIGH: {:?}", target);
-       let mut solver: Solver = input.clone().into();
-       
-       solver.stop_on = Some((target, PulseState::Low));
-       
-       let mut cnt = 0;
-       while !solver.stopped {
-           cnt += 1;
-           solver.pulse();
-       }
-       to_high.push(cnt);
+    assert!(input.modules.get("rx").is_none());
+
+    let hb = input.modules.get("hb").expect("has HB");
+    assert_eq!(hb.operation, Operation::Conjunction);
+    assert_eq!(hb.targets, vec!["rx"]);
+
+    for target in input
+        .modules
+        .values()
+        .filter(|m| m.targets.contains(&"hb"))
+        .map(|m| m.name)
+    {
+        // How costry is it to turn target to "High"
+        info!("Waiting for Low output for: {:?}", target);
+        let mut solver: Solver = input.clone().into();
+
+        solver.stop_on = Some((target, PulseState::Low));
+
+        let mut cnt = 0;
+        while !solver.stopped {
+            cnt += 1;
+            solver.pulse();
+        }
+        to_low_output.push(cnt);
     }
-    
-    info!("TO_HIGH: {:?}", to_high);
-    
-    lcm(to_high)
+
+    info!("to_low_output: {:?}", to_low_output);
+
+    lcm(to_low_output)
 }
 
 #[cfg(test)]
