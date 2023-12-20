@@ -16,7 +16,7 @@ rayon = "*"
 rstest = "*"
 rstest_reuse = "*"
 tracing = "*"
-tracing-subscriber = {version="*", features = ["env-filter"]}
+tracing-subscriber = {version="0.3.1", features = ["env-filter"]}
 tracing-tracy = "*"
 tracy-client = "*"
 tracy-client-sys = "*"
