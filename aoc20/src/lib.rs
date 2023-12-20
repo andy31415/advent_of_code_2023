@@ -79,7 +79,7 @@ impl<'a> Solver<'a> {
 
         while let Some((source, target, pulse)) = instructions.pop_front() {
             if let Some((st, sp)) = self.stop_on {
-                if (target == st) && (pulse == sp) {
+                if (source == st) && (pulse == sp) {
                     self.stopped = true;
                     break;
                 }
@@ -318,7 +318,7 @@ pub fn part2(input: &str) -> usize {
         info!("Waiting for Low output for: {:?}", target);
         let mut solver: Solver = input.clone().into();
 
-        solver.stop_on = Some((target, PulseState::Low));
+        solver.stop_on = Some((target, PulseState::High));
 
         let mut cnt = 0;
         while !solver.stopped {
