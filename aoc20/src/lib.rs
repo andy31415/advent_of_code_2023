@@ -85,7 +85,7 @@ impl<'a> Solver<'a> {
         (low_count, high_count)
     }
 
-    fn send_pulse<'b, 'c>(
+    fn send_pulse<'b>(
         &'b mut self,
         source: &'a str,
         target: &'a str,
@@ -250,7 +250,7 @@ pub fn part1(input: &str) -> usize {
     low * high
 }
 
-pub fn part2(input: &str) -> usize {
+pub fn part2(_input: &str) -> usize {
     // TODO: implement
     0
 }
