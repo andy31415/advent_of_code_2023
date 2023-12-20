@@ -58,6 +58,9 @@ enum ModuleState<'a> {
 struct Solver<'a> {
     input: Input<'a>,
     state: HashMap<&'a str, ModuleState<'a>>,
+    stopped: bool,
+    stop_on: Option<(&'a str, PulseState)>
+    
 }
 
 impl<'a> Solver<'a> {
@@ -76,6 +79,14 @@ impl<'a> Solver<'a> {
         }
 
         while let Some((source, target, pulse)) = instructions.pop_front() {
+            
+            if let Some((st, sp)) = self.stop_on {
+                if (target == st) && (pulse == sp) {
+                    self.stopped = true;
+                    break;
+                }
+            }
+            
             match pulse {
                 PulseState::Low => low_count += 1,
                 PulseState::High => high_count += 1,
@@ -179,7 +190,7 @@ impl<'a> From<Input<'a>> for Solver<'a> {
             }
         }
 
-        Self { input, state }
+        Self { input, state, stopped: false, stop_on: None }
     }
 }
 
@@ -250,9 +261,63 @@ pub fn part1(input: &str) -> usize {
     low * high
 }
 
-pub fn part2(_input: &str) -> usize {
-    // TODO: implement
-    0
+pub fn lcm(mut x: Vec<usize>) -> usize {
+    let mut v = x.pop().expect("non-empty vector");
+
+    while let Some(a) = x.pop() {
+        let b = v;
+        
+        let mut ga = a;
+        let mut gb = b;
+        
+        let gcd = 'calc: loop {
+            if ga > gb {
+                ga = ga % gb;
+                if ga == 0 {
+                    break 'calc gb;
+                }
+            } else {
+                gb = gb % ga;
+                if gb == 0 {
+                    break 'calc ga;
+                }
+            }
+        };
+
+        v = (a*b) / gcd;
+    }
+
+   v
+}
+
+pub fn part2(input: &str) -> usize {
+    let input = parse_input(input);
+    
+    // Manual check:
+    //  rx gets value from &hb
+    //  hb gets values from:
+    //     - js, zb, bs, rr
+    let mut to_high = Vec::new();
+
+    for target in input.modules.values().filter(|m| m.targets.contains(&"hb"))
+        .map(|m| m.name) {
+       // How costry is it to turn target to "High"
+       eprintln!("WAITING FOR HIGH: {:?}", target);
+       let mut solver: Solver = input.clone().into();
+       
+       solver.stop_on = Some((target, PulseState::Low));
+       
+       let mut cnt = 0;
+       while !solver.stopped {
+           cnt += 1;
+           solver.pulse();
+       }
+       to_high.push(cnt);
+    }
+    
+    eprintln!("TO_HIGH: {:?}", to_high);
+    
+    lcm(to_high)
 }
 
 #[cfg(test)]
@@ -276,10 +341,5 @@ mod tests {
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 32000000);
         assert_eq!(part1(include_str!("../example2.txt")), 11687500);
-    }
-
-    #[test]
-    fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
     }
 }
