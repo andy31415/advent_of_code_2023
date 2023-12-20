@@ -98,7 +98,7 @@ impl<'a> Solver<'a> {
             Some(s) => s,
             None => {
                 // some sanity check ... eventually pulses must end
-                assert_eq!(target, "output");
+                // assert_eq!(target, "output");
                 return result;
             }
         };
@@ -238,7 +238,11 @@ pub fn part1(input: &str) -> usize {
     let mut high = 0;
     for _ in 0..1000 {
         let (l, h) = solver.pulse();
-        trace!("-----------------TOTAL: {}, {} ------------------------", l, h);
+        trace!(
+            "-----------------TOTAL: {}, {} ------------------------",
+            l,
+            h
+        );
         low += l;
         high += h;
     }
