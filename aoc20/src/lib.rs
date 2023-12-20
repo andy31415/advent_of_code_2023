@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::space0,
+    character::complete::{line_ending, space0},
     combinator::value,
     multi::separated_list1,
     sequence::{separated_pair, tuple},
@@ -27,7 +27,7 @@ struct Module<'a> {
 
 #[derive(Debug, Clone)]
 struct Input<'a> {
-    broadast_targets: Vec<&'a str>,
+    broadcast_targets: Vec<&'a str>,
     modules: HashMap<&'a str, Module<'a>>,
 }
 
@@ -57,7 +57,30 @@ fn module(i: &str) -> IResult<&str, Module> {
     .parse(i)
 }
 
+fn parse_input(s: &str) -> Input {
+    let (r, mvec) = separated_list1(line_ending, module)
+        .parse(s)
+        .expect("valid input");
+    assert_eq!(r, "");
+
+    let mut broadcast_targets = None;
+    let mut modules = HashMap::new();
+
+    for m in mvec {
+        if m.operation == Operation::Broadcast {
+            broadcast_targets = Some(m.targets.clone());
+        }
+        modules.insert(m.name, m);
+    }
+    let broadcast_targets = broadcast_targets.expect("has broadcast");
+    Input {
+        broadcast_targets,
+        modules,
+    }
+}
+
 pub fn part1(input: &str) -> usize {
+    let input = parse_input(input);
     // TODO: implement
     0
 }
