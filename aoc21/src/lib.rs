@@ -221,7 +221,7 @@ pub fn part2b(input: &str) -> usize {
         c = i.matches - a - b;
         b = i.matches - a;
         a = i.matches;
-        info!("A, B, C, D : {}, {}, {}, {}", a, b, c, d);
+        info!("A, B, C, D : {:6}, {:6}, {:6}, {:6}", a, b, c, d);
         
         // break as soon as we hit the linear pattern
         // This works because every time the large diamond expands
