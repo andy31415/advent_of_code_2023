@@ -62,11 +62,11 @@ impl InfiniteStateIterator {
                 while r < 0 {
                     r += self.input.rows as i32;
                 }
-                r = r % self.input.rows as i32;
+                r %= self.input.rows as i32;
                 while c < 0 {
                     c += self.input.cols as i32;
                 }
-                c = c % self.input.cols as i32;
+                c %= self.input.cols as i32;
 
                 !self.input.stones.contains(&(r, c))
             })
@@ -192,7 +192,7 @@ pub fn part2_b(input: &str) -> usize {
     for _ in 0..65 {
         i.step();
     }
-    
+
     let mut a = i.matches;
     let mut b = 0;
     let mut c = 0;
@@ -207,29 +207,28 @@ pub fn part2_b(input: &str) -> usize {
             i.step();
         }
         //eprintln!("STEP {}: {}", i.step, i.matches);
-        
+
         c = i.matches - a - b;
         b = i.matches - a;
         a = i.matches;
         //eprintln!("A, B, C : {}, {}, {}", a, b, c);
     }
-    
+
     const STEPS: usize = 26501365;
-    
+
     let mut steps = i.step;
     let mut total = i.matches;
     let mut to_add1 = b;
     while steps < STEPS {
-        steps += 2*131;
+        steps += 2 * 131;
         to_add1 += c;
         total += to_add1;
     }
-    
+
     assert_eq!(steps, STEPS);
-    
 
     eprintln!("Mthd B: {}", total);
-    total 
+    total
 }
 
 pub fn part2(input: &str) -> usize {
