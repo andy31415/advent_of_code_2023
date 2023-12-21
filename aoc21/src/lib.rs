@@ -39,12 +39,9 @@ struct InfiniteStateIterator {
 
 impl InfiniteStateIterator {
     fn from(input: Input, count: Count) -> Self {
-        let mut bfs = Vec::new();
-        bfs.push(input.start);
-
         Self {
+            bfs: vec![input.start],
             input,
-            bfs,
             count,
             seen: HashSet::new(),
             matches: 0,
