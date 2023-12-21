@@ -205,6 +205,9 @@ pub fn part2b(input: &str) -> usize {
     let mut a = i.matches;
     let mut b = 0;
     let mut c = 0;
+    
+    // helper to display progression more in case debug is desired
+    let mut extra_sequence_show: usize = 0;
 
     // at this point things will become stable, like
     // STEP 589: 299976 matches
@@ -220,13 +223,17 @@ pub fn part2b(input: &str) -> usize {
         c = i.matches - a - b;
         b = i.matches - a;
         a = i.matches;
-        info!("At step {:3} - M, B, C, D : {:6}, {:6}, {:6}, {:6}", i.step, i.matches, b, c, d);
+        info!("At step {:5} - M, B, C, D : {:8}, {:8}, {:8}, {:8}", i.step, i.matches, b, c, d);
 
         // break as soon as we hit the linear pattern
         // This works because every time the large diamond expands
         // in 4 directions equally
         if d == 0 {
-            break;
+            if extra_sequence_show > 0 {
+              extra_sequence_show -= 1;
+            } else {
+                break;
+            }
         }
     }
 
