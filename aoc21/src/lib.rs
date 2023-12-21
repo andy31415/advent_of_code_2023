@@ -182,7 +182,7 @@ pub fn part1(input: &str) -> usize {
     input.count(64, Count::Even)
 }
 
-pub fn part2_b(input: &str) -> usize {
+pub fn part2b(input: &str) -> usize {
     // Alternative implementation (slower, but maybe less error/off-by-one prone):
     //   Given fixed grid, do interpolation (seems like a linear sequence)
     //   whenever steps is a multiple of 2*grid_size + 65 (to match steps)
@@ -234,12 +234,10 @@ pub fn part2_b(input: &str) -> usize {
 
     assert_eq!(steps, STEPS);
 
-    eprintln!("Mthd B: {}", total);
     total
 }
 
 pub fn part2(input: &str) -> usize {
-    part2_b(input);
     // NOTE:
     //   I did NOT come up with this all by myself - based on code from
     //   HyperNeutrino: https://www.youtube.com/watch?v=9UOMZSL0JTg

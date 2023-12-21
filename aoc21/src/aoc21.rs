@@ -20,5 +20,8 @@ fn main() {
     println!("Part 1: {}", s1);
 
     let s2 = aoc21::part2(include_str!("../input.txt"));
-    println!("Part 2: {}", s2);
+    println!("Part 2:  {}", s2);
+
+    let s2 = aoc21::part2b(include_str!("../input.txt"));
+    println!("Part 2B: {}", s2);
 }

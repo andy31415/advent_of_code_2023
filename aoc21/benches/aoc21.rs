@@ -11,6 +11,11 @@ fn part1() {
 }
 
 #[divan::bench]
+fn part2b() {
+    aoc21::part2b(black_box(include_str!("../input.txt")));
+}
+
+#[divan::bench]
 fn part2() {
     aoc21::part2(black_box(include_str!("../input.txt")));
 }
