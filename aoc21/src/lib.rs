@@ -2,6 +2,22 @@ use std::collections::HashSet;
 
 type Position = (i32, i32); // row, col
 
+#[derive(Debug, PartialEq)]
+enum Count {
+    Odd,
+    Even,
+}
+
+impl Count {
+    fn matches(&self, s: usize) -> bool {
+        s % 2
+            == match self {
+                Count::Odd => 1,
+                Count::Even => 0,
+            }
+    }
+}
+
 struct Input {
     rows: usize,
     cols: usize,
@@ -18,9 +34,9 @@ impl Input {
             .filter(|p| !self.stones.contains(p))
     }
 
-    fn count_even(&self, steps: usize) -> usize {
+    fn count(&self, steps: usize, t: Count) -> usize {
         let mut seen = HashSet::new();
-        let mut even = HashSet::new();
+        let mut matches = HashSet::new();
 
         let mut bfs = Vec::new();
         bfs.push(self.start);
@@ -37,8 +53,8 @@ impl Input {
                     seen.insert(ns);
                     next_step.push(ns);
 
-                    if step % 2 == 1 {
-                        even.insert(ns);
+                    if t.matches(step + 1) {
+                        matches.insert(ns);
                     }
                 }
             }
@@ -46,7 +62,7 @@ impl Input {
             bfs.append(&mut next_step);
         }
 
-        even.len()
+        matches.len()
     }
 }
 
@@ -89,7 +105,7 @@ fn parse_input(input: &str) -> Input {
 
 pub fn part1(input: &str) -> usize {
     let input = parse_input(input);
-    input.count_even(64)
+    input.count(64, Count::Even)
 }
 
 pub fn part2(_input: &str) -> usize {
@@ -105,17 +121,12 @@ mod tests {
     fn test_steps() {
         let input = parse_input(include_str!("../example.txt"));
 
-        assert_eq!(input.count_even(2), 4);
-        assert_eq!(input.count_even(6), 16);
+        assert_eq!(input.count(2, Count::Even), 4);
+        assert_eq!(input.count(6, Count::Even), 16);
     }
 
     #[test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 42);
-    }
-
-    #[test]
-    fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
     }
 }
