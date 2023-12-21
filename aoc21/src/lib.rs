@@ -214,14 +214,18 @@ pub fn part2_b(input: &str) -> usize {
         //eprintln!("A, B, C : {}, {}, {}", a, b, c);
     }
     
+    const STEPS: usize = 26501365;
+    
     let mut steps = i.step;
     let mut total = i.matches;
     let mut to_add1 = b;
-    while steps < 26501365 {
+    while steps < STEPS {
         steps += 2*131;
         to_add1 += c;
         total += to_add1;
     }
+    
+    assert_eq!(steps, STEPS);
     
 
     eprintln!("Mthd B: {}", total);
