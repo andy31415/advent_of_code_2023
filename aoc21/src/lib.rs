@@ -18,6 +18,7 @@ impl Count {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Input {
     rows: usize,
     cols: usize,
@@ -26,6 +27,12 @@ struct Input {
 }
 
 impl Input {
+    fn with_start(&self, start: Position) -> Input {
+        let mut result = self.clone();
+        result.start = start;
+        result
+    }
+
     fn directions(&self, p: Position) -> impl Iterator<Item = Position> + '_ {
         [(-1, 0), (1, 0), (0, -1), (0, 1)]
             .iter()
