@@ -121,6 +121,17 @@ pub fn part2(input: &str) -> usize {
     //   HyperNeutrino: https://www.youtube.com/watch?v=9UOMZSL0JTg
     //
     // Overall this problem seems too taylored on a specific input :(
+    // 
+    // Alternative:
+    //   Given fixed grid, do interpolation (seems like a linear sequence)
+    //   whenever steps is a multiple of 2*grid_size + 65 (to match steps)
+    //
+    //   Given that: STEPS = (202300 * 131) + 65
+    //   
+    //   since odd/even are different every test should be after 2*131
+    //   and divide accordingly. A slow flodd-fill is required there.
+    //   
+    //   See https://www.youtube.com/watch?v=00a_mvv1vUc
     let input = parse_input(input);
 
     const STEPS: usize = 26501365;
