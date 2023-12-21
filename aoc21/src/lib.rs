@@ -116,20 +116,78 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
+    // NOTE:
+    //   I did NOT come up with this all by myself - based on code from
+    //   HyperNeutrino: https://www.youtube.com/watch?v=9UOMZSL0JTg
+    //
+    // Overall this problem seems too taylored on a specific input :(
     let input = parse_input(input);
-    
-    const STEPS: usize =  26501365;
+
+    const STEPS: usize = 26501365;
 
     // massive assumptions, on top of the already
     // massive "boundaries are trivially reachable and all edges reachable"
     assert_eq!(input.rows, input.cols);
-    assert_eq!(STEPS % input.rows,  input.rows / 2);
+    assert_eq!(STEPS % input.rows, input.rows / 2);
+
+    let mut total = 0;
+    let grid_width = STEPS / input.rows - 1;
+    let n = input.rows as i32 - 1;
+
+    // fully reachable (and from the center)
+    total += ((grid_width / 2) * 2 + 1)
+        * ((grid_width / 2) * 2 + 1)
+        * input.count(2 * (input.rows) + input.cols, Count::Odd);
+
+    total += (((grid_width + 1) / 2) * 2)
+        * (((grid_width + 1) / 2) * 2)
+        * input.count(2 * (input.rows) + input.cols, Count::Even);
+
+    //  Partial only reachable, using coordinates
+
+    // Add corners:
+    // North
+    total += input
+        .with_start((input.rows as i32 - 1, input.start.1))
+        .count(n as usize, Count::Even);
+
+    // South
+    total += input
+        .with_start((0, input.start.1))
+        .count(n as usize, Count::Even);
+
+    // East
+    total += input
+        .with_start((input.start.0, 0))
+        .count(n as usize, Count::Even);
+    
+    // West
+    total += input
+        .with_start((input.start.0, input.cols as i32 - 1))
+        .count(input.rows - 1, Count::Even);
     
 
+    // small and large grid fills. This one is TERRIBLE
+    let small_step_count = input.rows / 2 - 1;
 
+    total += 
+      (
+          input.with_start((0, n)).count(small_step_count, Count::Even)
+            + input.with_start((n, 0)).count(small_step_count, Count::Even)
+            + input.with_start((0, 0)).count(small_step_count, Count::Even)
+            + input.with_start((n, n)).count(small_step_count, Count::Even)
+      ) * (grid_width + 1);
 
-    // TODO: implement
-    0
+    let large_step_count = ((input.rows * 3) / 2) - 1;
+    total += 
+      (
+          input.with_start((0, n)).count(large_step_count, Count::Odd)
+            + input.with_start((n, 0)).count(large_step_count, Count::Odd)
+            + input.with_start((0, 0)).count(large_step_count, Count::Odd)
+            + input.with_start((n, n)).count(large_step_count, Count::Odd)
+      ) * grid_width;
+
+    total
 }
 
 #[cfg(test)]
