@@ -36,7 +36,7 @@ impl Input {
                     }
                     seen.insert(ns);
                     next_step.push(ns);
-                    
+
                     if step % 2 == 1 {
                         even.insert(ns);
                     }
@@ -56,7 +56,7 @@ fn parse_input(input: &str) -> Input {
     let mut start = None;
     let mut stones = HashSet::new();
 
-    for (row, l) in input.split("\n").enumerate().map(|(r, l)| (r as i32, l)) {
+    for (row, l) in input.split('\n').enumerate().map(|(r, l)| (r as i32, l)) {
         match cols {
             Some(v) => assert!(l.len() == v),
             None => cols = Some(l.len()),
@@ -92,7 +92,7 @@ pub fn part1(input: &str) -> usize {
     input.count_even(64)
 }
 
-pub fn part2(input: &str) -> usize {
+pub fn part2(_input: &str) -> usize {
     // TODO: implement
     0
 }
@@ -103,10 +103,10 @@ mod tests {
 
     #[test]
     fn test_steps() {
-       let input = parse_input(include_str!("../example.txt"));
-       
-       assert_eq!(input.count_even(2), 4);
-       assert_eq!(input.count_even(6), 16);
+        let input = parse_input(include_str!("../example.txt"));
+
+        assert_eq!(input.count_even(2), 4);
+        assert_eq!(input.count_even(6), 16);
     }
 
     #[test]
