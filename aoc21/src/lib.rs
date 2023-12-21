@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use tracing::info;
+
 type Position = (i32, i32); // row, col
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -203,22 +205,24 @@ pub fn part2b(input: &str) -> usize {
     let mut a = i.matches;
     let mut b = 0;
     let mut c = 0;
+    let mut d = 0;
 
     // at this point things will become stable, like
     // STEP 589: 299976 matches
     // A: 299976
     // B: 207296
     // C: 118360 (and will not change anymore)
-    for _ in 0..2 {
+    for _ in 0..6 {
         for _ in 0..(131 * 2) {
             i.step();
         }
         //eprintln!("STEP {}: {}", i.step, i.matches);
 
+        d = i.matches - a - b - c;
         c = i.matches - a - b;
         b = i.matches - a;
         a = i.matches;
-        //eprintln!("A, B, C : {}, {}, {}", a, b, c);
+        info!("A, B, C, D : {}, {}, {}, {}", a, b, c, d);
     }
 
     const STEPS: usize = 26501365;
