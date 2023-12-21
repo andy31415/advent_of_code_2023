@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use tracing::info;
+use tracing::{info, trace};
 
 type Position = (i32, i32); // row, col
 
@@ -205,24 +205,30 @@ pub fn part2b(input: &str) -> usize {
     let mut a = i.matches;
     let mut b = 0;
     let mut c = 0;
-    let mut d = 0;
 
     // at this point things will become stable, like
     // STEP 589: 299976 matches
     // A: 299976
     // B: 207296
     // C: 118360 (and will not change anymore)
-    for _ in 0..6 {
+    loop {
         for _ in 0..(131 * 2) {
             i.step();
         }
-        //eprintln!("STEP {}: {}", i.step, i.matches);
+        trace!("STEP {}: {}", i.step, i.matches);
 
-        d = i.matches - a - b - c;
+        let d = i.matches - a - b - c;
         c = i.matches - a - b;
         b = i.matches - a;
         a = i.matches;
         info!("A, B, C, D : {}, {}, {}, {}", a, b, c, d);
+        
+        // break as soon as we hit the linear pattern
+        // This works because every time the large diamond expands
+        // in 4 directions equally
+        if d == 0 {
+            break;
+        }
     }
 
     const STEPS: usize = 26501365;
