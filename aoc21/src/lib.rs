@@ -160,32 +160,35 @@ pub fn part2(input: &str) -> usize {
     total += input
         .with_start((input.start.0, 0))
         .count(n as usize, Count::Even);
-    
+
     // West
     total += input
         .with_start((input.start.0, input.cols as i32 - 1))
         .count(input.rows - 1, Count::Even);
-    
 
     // small and large grid fills. This one is TERRIBLE
     let small_step_count = input.rows / 2 - 1;
 
-    total += 
-      (
-          input.with_start((0, n)).count(small_step_count, Count::Even)
-            + input.with_start((n, 0)).count(small_step_count, Count::Even)
-            + input.with_start((0, 0)).count(small_step_count, Count::Even)
-            + input.with_start((n, n)).count(small_step_count, Count::Even)
-      ) * (grid_width + 1);
+    total += (input
+        .with_start((0, n))
+        .count(small_step_count, Count::Even)
+        + input
+            .with_start((n, 0))
+            .count(small_step_count, Count::Even)
+        + input
+            .with_start((0, 0))
+            .count(small_step_count, Count::Even)
+        + input
+            .with_start((n, n))
+            .count(small_step_count, Count::Even))
+        * (grid_width + 1);
 
     let large_step_count = ((input.rows * 3) / 2) - 1;
-    total += 
-      (
-          input.with_start((0, n)).count(large_step_count, Count::Odd)
-            + input.with_start((n, 0)).count(large_step_count, Count::Odd)
-            + input.with_start((0, 0)).count(large_step_count, Count::Odd)
-            + input.with_start((n, n)).count(large_step_count, Count::Odd)
-      ) * grid_width;
+    total += (input.with_start((0, n)).count(large_step_count, Count::Odd)
+        + input.with_start((n, 0)).count(large_step_count, Count::Odd)
+        + input.with_start((0, 0)).count(large_step_count, Count::Odd)
+        + input.with_start((n, n)).count(large_step_count, Count::Odd))
+        * grid_width;
 
     total
 }
