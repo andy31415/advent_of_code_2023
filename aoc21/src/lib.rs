@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 type Position = (i32, i32); // row, col
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 enum Count {
     Odd,
     Even,
@@ -26,6 +26,76 @@ struct Input {
     start: Position,
 }
 
+/// goes over an infinite grid
+#[derive(Debug, Clone)]
+struct InfiniteStateIterator {
+    input: Input,
+    seen: HashSet<Position>,
+    bfs: Vec<Position>, // current search location
+    count: Count,       // type of count we are looking for
+    matches: usize,     // matches for count
+    step: usize,        // existing step - 1
+}
+
+impl InfiniteStateIterator {
+    fn from(input: Input, count: Count) -> Self {
+        let mut bfs = Vec::new();
+        bfs.push(input.start);
+
+        Self {
+            input,
+            bfs,
+            count,
+            seen: HashSet::new(),
+            matches: 0,
+            step: 0,
+        }
+    }
+
+    fn directions(&self, p: Position) -> Vec<Position> {
+        [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            .iter()
+            .map(move |(r, c)| (*r + p.0, *c + p.1))
+            .filter(|p| {
+                let mut r = p.0;
+                let mut c = p.1;
+                while r < 0 {
+                    r += self.input.rows as i32;
+                }
+                r = r % self.input.rows as i32;
+                while c < 0 {
+                    c += self.input.cols as i32;
+                }
+                c = c % self.input.cols as i32;
+
+                !self.input.stones.contains(&(r, c))
+            })
+            .collect()
+    }
+
+    fn step(&mut self) {
+        self.step += 1;
+        // actual step index is step + 1
+        let mut next_step = Vec::new();
+
+        while let Some(p) = self.bfs.pop() {
+            for ns in self.directions(p) {
+                if self.seen.contains(&ns) {
+                    continue;
+                }
+                self.seen.insert(ns);
+                next_step.push(ns);
+
+                if self.count.matches(self.step) {
+                    self.matches += 1;
+                }
+            }
+        }
+
+        self.bfs.append(&mut next_step);
+    }
+}
+
 impl Input {
     fn with_start(&self, start: Position) -> Input {
         let mut result = self.clone();
@@ -43,7 +113,7 @@ impl Input {
 
     fn count(&self, steps: usize, t: Count) -> usize {
         let mut seen = HashSet::new();
-        let mut matches = HashSet::new();
+        let mut matched = 0;
 
         let mut bfs = Vec::new();
         bfs.push(self.start);
@@ -61,7 +131,7 @@ impl Input {
                     next_step.push(ns);
 
                     if t.matches(step + 1) {
-                        matches.insert(ns);
+                        matched += 1;
                     }
                 }
             }
@@ -69,7 +139,7 @@ impl Input {
             bfs.append(&mut next_step);
         }
 
-        matches.len()
+        matched
     }
 }
 
@@ -115,22 +185,66 @@ pub fn part1(input: &str) -> usize {
     input.count(64, Count::Even)
 }
 
+pub fn part2_b(input: &str) -> usize {
+    let mut i = InfiniteStateIterator::from(parse_input(input), Count::Odd);
+
+    // go for 65 steps
+    for _ in 0..65 {
+        i.step();
+    }
+    
+    let mut a = i.matches;
+    let mut b = 0;
+    let mut c = 0;
+
+    // at this point things will become stable, like
+    // STEP 589: 299976 matches
+    // A: 299976
+    // B: 207296
+    // C: 118360 (and will not change anymore)
+    for _ in 0..2 {
+        for _ in 0..(131 * 2) {
+            i.step();
+        }
+        //eprintln!("STEP {}: {}", i.step, i.matches);
+        
+        c = i.matches - a - b;
+        b = i.matches - a;
+        a = i.matches;
+        //eprintln!("A, B, C : {}, {}, {}", a, b, c);
+    }
+    
+    let mut steps = i.step;
+    let mut total = i.matches;
+    let mut to_add1 = b;
+    while steps < 26501365 {
+        steps += 2*131;
+        to_add1 += c;
+        total += to_add1;
+    }
+    
+
+    eprintln!("Mthd B: {}", total);
+    total 
+}
+
 pub fn part2(input: &str) -> usize {
+    part2_b(input);
     // NOTE:
     //   I did NOT come up with this all by myself - based on code from
     //   HyperNeutrino: https://www.youtube.com/watch?v=9UOMZSL0JTg
     //
     // Overall this problem seems too taylored on a specific input :(
-    // 
+    //
     // Alternative:
     //   Given fixed grid, do interpolation (seems like a linear sequence)
     //   whenever steps is a multiple of 2*grid_size + 65 (to match steps)
     //
     //   Given that: STEPS = (202300 * 131) + 65
-    //   
+    //
     //   since odd/even are different every test should be after 2*131
     //   and divide accordingly. A slow flodd-fill is required there.
-    //   
+    //
     //   See https://www.youtube.com/watch?v=00a_mvv1vUc
     let input = parse_input(input);
 
