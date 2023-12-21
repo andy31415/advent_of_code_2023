@@ -115,7 +115,19 @@ pub fn part1(input: &str) -> usize {
     input.count(64, Count::Even)
 }
 
-pub fn part2(_input: &str) -> usize {
+pub fn part2(input: &str) -> usize {
+    let input = parse_input(input);
+    
+    const STEPS: usize =  26501365;
+
+    // massive assumptions, on top of the already
+    // massive "boundaries are trivially reachable and all edges reachable"
+    assert_eq!(input.rows, input.cols);
+    assert_eq!(STEPS % input.rows,  input.rows / 2);
+    
+
+
+
     // TODO: implement
     0
 }
