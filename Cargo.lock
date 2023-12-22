@@ -185,7 +185,7 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
  "nom_locate",
@@ -213,7 +213,7 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
  "rstest",
@@ -228,7 +228,7 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
  "nom_locate",
@@ -245,10 +245,11 @@ dependencies = [
  "dhat",
  "divan",
  "glam",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "nom",
  "nom-supreme",
  "nom_locate",
+ "petgraph",
  "test-log",
  "trace",
  "tracing",
@@ -1098,6 +1099,16 @@ dependencies = [
  "num-traits",
  "rustc-hash",
  "thiserror",
+]
+
+[[package]]
+name = "petgraph"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
+dependencies = [
+ "fixedbitset",
+ "indexmap",
 ]
 
 [[package]]

@@ -9,6 +9,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
+use petgraph::{graph, Graph, dot::{Config, Dot}};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct Brick {
@@ -55,6 +56,7 @@ impl Brick {
 struct Building {
     bricks: Vec<Brick>,
     by_top_z: HashMap<i32, Vec<usize>>, // z-index to brick index
+    by_bottom_z: HashMap<i32, Vec<usize>>, // z-index to brick index
 }
 
 const LETTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -98,6 +100,25 @@ impl Debug for Building {
             f.write_str(" ]\n")?;
         }
 
+        f.write_str("  by_bottom_z: [\n")?;
+
+        let mut keys: Vec<_> = self.by_bottom_z.keys().collect();
+        keys.sort();
+        keys.reverse();
+
+        for idx in keys {
+            f.write_fmt(format_args!("    {}: [ ", idx))?;
+
+            for (c, v) in self.by_top_z.get(idx).expect("is a key").iter().enumerate() {
+                if c != 0 {
+                    f.write_str(", ")?;
+                }
+                f.write_fmt(format_args!("{}/{}", v, idx_to_human(*v)))?;
+            }
+
+            f.write_str(" ]\n")?;
+        }
+
         f.write_str("  ]\n")?;
 
         //f.debug_struct("Building").field("bricks", &self.bricks).field("by_top_z", &self.by_top_z).finish()
@@ -111,6 +132,7 @@ impl Building {
         let mut result = Building {
             bricks: Vec::new(),
             by_top_z: HashMap::new(),
+            by_bottom_z: HashMap::new(),
         };
 
         // make sure lower z items drop first
@@ -148,6 +170,42 @@ impl Building {
         } else {
             self.by_top_z.insert(b.top_z(), vec![brick_idx]);
         }
+
+        if let Some(v) = self.by_bottom_z.get_mut(&b.bottom_z()) {
+            v.push(brick_idx);
+        } else {
+            self.by_bottom_z.insert(b.bottom_z(), vec![brick_idx]);
+        }
+    }
+
+    // Graph the nodes with "a->b" meaning "a keeps b afloat"
+    fn layout_graph(&self) -> Graph<String, ()> {
+        let mut deps = Graph::new();
+
+        let graph_nodes = self
+            .bricks
+            .iter()
+            .enumerate()
+            .map(|(idx, b)| (idx, deps.add_node(
+                        idx_to_human(idx))))
+            .collect::<HashMap<_, _>>();
+
+        for (k, idx1) in graph_nodes.iter() {
+            let b1 = self.brick_with_index(*k);
+
+            // figure out any brick that this b1 MAY support
+            if let Some(above_v) = self.by_bottom_z.get(&(b1.top_z() + 1)) {
+                for i2 in above_v {
+                    let b2 = self.brick_with_index(*i2);
+                    if b1.intesects_xy(b2) {
+                        // B1 holds b2 up
+                        deps.add_edge(*idx1, *graph_nodes.get(i2).expect("Vaslid index"), ());
+                    }
+                }
+            }
+        }
+
+        deps
     }
 }
 
@@ -177,7 +235,10 @@ pub fn part1(input: &str) -> usize {
     let input = parse_input(input);
     let b = Building::new(input);
 
-    dbg!(&b);
+    let g = b.layout_graph();
+    
+    // println!("{:?}", Dot::with_config(&g, &[Config::EdgeNoLabel]));
+
 
     0
 }

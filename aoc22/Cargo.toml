@@ -28,6 +28,7 @@ nom-supreme = "0.8.0"
 nom_locate = "4.2.0"
 trace = "0.1.7"
 test-log = { version = "0.2.14", features = ["log", "trace"] }
+petgraph.workspace = true
 
 [dev-dependencies]
 itertools = {workspace=true}
