@@ -1,5 +1,3 @@
-
-
 use aoc22::Building;
 use bevy::{
     app::AppExit,
@@ -8,6 +6,7 @@ use bevy::{
     utils::HashMap,
     window::PresentMode,
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 #[derive(Component, Debug)]
 struct BrickDisplay {}
@@ -15,7 +14,7 @@ struct BrickDisplay {}
 fn main() {
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins)
+    app.add_plugins((DefaultPlugins, WorldInspectorPlugin::new()))
         .init_resource::<BrickColors>()
         .add_systems(Startup, (load_floor, load_input, load_camera, load_light))
         .add_systems(Startup, faster_present)
@@ -50,14 +49,11 @@ impl BrickColors {
 
         let h = ((idx * 53) % 360) as f32;
 
-        let material = materials.add(
-            StandardMaterial {
-                base_color: Color::hsl(h, 1.0, 0.5),
-                double_sided: false,
-                ..default()
-            }
-
-            );
+        let material = materials.add(StandardMaterial {
+            base_color: Color::hsl(h, 1.0, 0.5),
+            double_sided: false,
+            ..default()
+        });
         self.colors.insert(idx, material.clone());
         material
     }
