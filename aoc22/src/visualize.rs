@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use aoc22::Building;
 use bevy::{
     app::AppExit,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
+    utils::HashMap,
     window::PresentMode,
 };
 
@@ -13,6 +16,7 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugins(DefaultPlugins)
+        .init_resource::<BrickColors>()
         .add_systems(Startup, (load_floor, load_input, load_camera, load_light))
         .add_systems(Startup, faster_present)
         .add_systems(Update, (handle_exit, pan_orbit_camera))
@@ -27,6 +31,28 @@ fn main() {
     }
 
     app.run();
+}
+
+#[derive(Resource, Default, Debug)]
+struct BrickColors {
+    colors: HashMap<usize, Handle<StandardMaterial>>,
+}
+
+impl BrickColors {
+    fn get(
+        &mut self,
+        materials: &mut ResMut<Assets<StandardMaterial>>,
+        idx: usize,
+    ) -> Handle<StandardMaterial> {
+        if let Some(v) = self.colors.get(&idx) {
+            return v.clone();
+        }
+
+        let h = ((idx * 53) % 360) as f32;
+        let material = materials.add(Color::hsl(h, 1.0, 0.5).into());
+        self.colors.insert(idx, material.clone());
+        material
+    }
 }
 
 #[derive(Component)]
@@ -201,6 +227,7 @@ fn reload_data(
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<StandardMaterial>>,
     bricks: Query<(Entity, &BrickDisplay)>,
+    material_cache: ResMut<BrickColors>,
 ) {
     let mut target = None;
 
@@ -220,6 +247,7 @@ fn reload_data(
             commands,
             meshes,
             materials,
+            material_cache,
         );
     }
 }
@@ -228,6 +256,7 @@ fn load_input(
     commands: Commands,
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<StandardMaterial>>,
+    material_cache: ResMut<BrickColors>,
 ) {
     load_data(
         include_str!("../example.txt"),
@@ -235,6 +264,7 @@ fn load_input(
         commands,
         meshes,
         materials,
+        material_cache,
     );
 }
 
@@ -246,6 +276,7 @@ fn load_data(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut material_cache: ResMut<BrickColors>,
 ) {
     let mut bricks = aoc22::parse_input(data);
     if drop {
@@ -272,19 +303,13 @@ fn load_data(
         let (x, y, z) = (x, z, y);
 
         // everything goes -1 to top
-        let lower = Vec3::new(x.0 - 1.0, y.0 - 1.0, z.0 - 1.0) * SCALE;
+        const DELTA: f32 = 1.0;
+        let lower = Vec3::new(x.0 - DELTA, y.0 - DELTA, z.0 - DELTA) * SCALE;
         let upper = Vec3::new(x.1, y.1, z.1) * SCALE;
-
-        const D1: usize = 60;
-
-        let i1 = (brick.idx * 7) % D1;
-        let i2: usize = ((brick.idx * 3) / D1) % (360 / D1);
-
-        let h = (i1 * (360 / D1) + i2) as f32;
 
         let item = PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::from_corners(lower, upper))),
-            material: materials.add(Color::hsl(h, 1.0, 0.5).into()),
+            material: material_cache.get(&mut materials, brick.idx),
             ..default()
         };
         commands.spawn((BrickDisplay {}, item));
