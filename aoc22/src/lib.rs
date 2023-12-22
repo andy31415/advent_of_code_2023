@@ -218,20 +218,24 @@ impl Building {
 
         process.push_back(b);
         while let Some(b) = process.pop_front() {
+            if removed.contains(b) {
+                continue; // already removed
+            }
             removed.insert(b);
 
             // Check every brick above b
             for other in self
                 .bricks
                 .iter()
-                .filter(|other| other.bottom_z() == b.top_z() + 1)
+                .filter(|o| o.bottom_z() == b.top_z() + 1)
             {
                 if self.below_bricks(other).iter().all(|x| removed.contains(x)) {
-                    process.push_back(other);
+                    if !removed.contains(other) {
+                        process.push_back(other);
+                    }
                 }
             }
         }
-
         // Do not count the disintegrated brick
         removed.len() - 1
     }
