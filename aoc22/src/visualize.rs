@@ -1,5 +1,5 @@
 use aoc22::Brick;
-use bevy::{app::AppExit, prelude::*};
+use bevy::{app::AppExit, audio::Decodable, prelude::*};
 
 #[derive(Component, Debug)]
 struct BrickDisplay {
@@ -9,9 +9,22 @@ struct BrickDisplay {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, (load_floor, load_input, load_camera))
+        .add_systems(Startup, (load_floor, load_input, load_camera, load_light))
         .add_systems(Update, handle_exit)
         .run();
+}
+
+fn load_light(mut commands: Commands) {
+    let light = PointLightBundle {
+        point_light: PointLight {
+            intensity: 2000.0,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.0, 5.0, 0.0),
+        ..default()
+    };
+
+    commands.spawn(light);
 }
 
 fn load_camera(mut commands: Commands) {
