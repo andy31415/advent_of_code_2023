@@ -330,11 +330,13 @@ mod tests {
     fn test_brick_intersect() {
         assert!(!Brick {
             start: IVec3::new(0, 0, 4),
-            end: IVec3::new(0, 2, 4)
+            end: IVec3::new(0, 2, 4),
+            idx: 0,
         }
         .intesects_xy(&Brick {
             start: IVec3::new(2, 0, 5),
-            end: IVec3::new(2, 2, 5)
+            end: IVec3::new(2, 2, 5),
+            idx: 0,
         }));
     }
 
