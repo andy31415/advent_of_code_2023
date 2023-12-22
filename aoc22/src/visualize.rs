@@ -1,9 +1,10 @@
-use aoc22::Brick;
+use aoc22::{Brick, Building};
 use bevy::{
     app::AppExit,
     audio::Decodable,
     input::mouse::{MouseMotion, MouseWheel},
-    prelude::*, window::PresentMode,
+    prelude::*,
+    window::PresentMode,
 };
 
 #[derive(Component, Debug)]
@@ -20,11 +21,11 @@ fn main() {
         .add_systems(Update, (handle_exit, pan_orbit_camera))
         .add_systems(Update, reload_data);
 
-    #[cfg(feature="fps")] // debug/dev builds only
+    #[cfg(feature = "fps")] // debug/dev builds only
     {
         app.add_plugins((
-           bevy::diagnostic::FrameTimeDiagnosticsPlugin::default(),
-           bevy::diagnostic::LogDiagnosticsPlugin::default(),
+            bevy::diagnostic::FrameTimeDiagnosticsPlugin::default(),
+            bevy::diagnostic::LogDiagnosticsPlugin::default(),
         ));
     }
 
@@ -49,9 +50,7 @@ impl Default for PanOrbitCamera {
     }
 }
 
-fn faster_present(
-    mut windows: Query<&mut Window>,
-) {
+fn faster_present(mut windows: Query<&mut Window>) {
     windows.get_single_mut().expect("have window").present_mode = PresentMode::Mailbox;
 }
 
@@ -219,7 +218,13 @@ fn reload_data(
         for e in bricks.iter() {
             commands.entity(e.0).despawn();
         }
-        load_data(data, commands, meshes, materials);
+        load_data(
+            data,
+            input.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]),
+            commands,
+            meshes,
+            materials,
+        );
     }
 }
 
@@ -228,18 +233,31 @@ fn load_input(
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    load_data(include_str!("../example.txt"), commands, meshes, materials);
+    load_data(
+        include_str!("../example.txt"),
+        false,
+        commands,
+        meshes,
+        materials,
+    );
 }
 
 const SCALE: f32 = 0.2;
 
 fn load_data(
     data: &str,
+    drop: bool,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for (idx, brick) in aoc22::parse_input(data).into_iter().enumerate() {
+    let mut bricks = aoc22::parse_input(data);
+    if drop {
+        let b = Building::new(bricks);
+        bricks = b.bricks;
+    }
+
+    for (idx, brick) in bricks.into_iter().enumerate() {
         // figure out ranges for the brick
         let x = (
             brick.start.x.min(brick.end.x) as f32,
