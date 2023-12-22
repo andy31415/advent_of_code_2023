@@ -7,8 +7,7 @@ use bevy::{
 };
 
 #[derive(Component, Debug)]
-struct BrickDisplay {
-}
+struct BrickDisplay {}
 
 fn main() {
     let mut app = App::new();
@@ -282,7 +281,7 @@ fn load_data(
             material: materials.add(Color::hsl(h, 1.0, 0.5).into()),
             ..default()
         };
-        commands.spawn((BrickDisplay{}, item));
+        commands.spawn((BrickDisplay {}, item));
     }
 }
 

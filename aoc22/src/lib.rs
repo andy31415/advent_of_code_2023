@@ -12,9 +12,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use petgraph::{
-    Graph,
-};
+use petgraph::Graph;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Brick {
@@ -224,7 +222,9 @@ impl Building {
 
             // Check every brick above b
             for other in self.bricks.iter().filter(|o| o.bottom_z() == b.top_z() + 1) {
-                if self.below_bricks(other).iter().all(|x| removed.contains(x)) && !removed.contains(other) {
+                if self.below_bricks(other).iter().all(|x| removed.contains(x))
+                    && !removed.contains(other)
+                {
                     process.push_back(other);
                 }
             }
@@ -278,12 +278,18 @@ fn line(s: &str) -> IResult<&str, (IVec3, IVec3)> {
 }
 
 pub fn parse_input(s: &str) -> Vec<Brick> {
-    let (r, i) = separated_list1(line_ending, line.map(|(start, end)| Brick { start, end, idx: 0 }))
-        .parse(s)
-        .expect("Valid input");
+    let (r, i) = separated_list1(
+        line_ending,
+        line.map(|(start, end)| Brick { start, end, idx: 0 }),
+    )
+    .parse(s)
+    .expect("Valid input");
     assert_eq!(r, "");
 
-    i.iter().enumerate().map(|(idx, b)| Brick{idx, ..*b}).collect()
+    i.iter()
+        .enumerate()
+        .map(|(idx, b)| Brick { idx, ..*b })
+        .collect()
 }
 
 pub fn part1(input: &str) -> usize {
