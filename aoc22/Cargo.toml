@@ -9,6 +9,10 @@ edition = "2021"
 name="aoc22"
 path="src/aoc22.rs"
 
+[[bin]]
+name="visualize"
+path="src/visualize.rs"
+
 [[bench]]
 name="aoc22"
 path="benches/aoc22.rs"
@@ -29,6 +33,7 @@ nom_locate = "4.2.0"
 trace = "0.1.7"
 test-log = { version = "0.2.14", features = ["log", "trace"] }
 petgraph.workspace = true
+bevy = "0.12.1"
 
 [dev-dependencies]
 itertools = {workspace=true}
