@@ -12,12 +12,22 @@ struct BrickDisplay {
 }
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins)
         .add_systems(Startup, (load_floor, load_input, load_camera, load_light))
         .add_systems(Update, (handle_exit, pan_orbit_camera))
-        .add_systems(Update, reload_data)
-        .run();
+        .add_systems(Update, reload_data);
+
+    #[cfg(feature="fps")] // debug/dev builds only
+    {
+        app.add_plugins((
+           bevy::diagnostic::FrameTimeDiagnosticsPlugin::default(),
+           bevy::diagnostic::LogDiagnosticsPlugin::default(),
+        ));
+    }
+
+    app.run();
 }
 
 #[derive(Component)]
@@ -47,7 +57,7 @@ fn pan_orbit_camera(
     mut query: Query<(&mut PanOrbitCamera, &mut Transform, &Projection)>,
 ) {
     // change input mapping for orbit and panning here
-    let orbit_button = MouseButton::Middle;
+    let orbit_button = MouseButton::Right;
     let pan_button = MouseButton::Left;
 
     let mut pan = Vec2::ZERO;

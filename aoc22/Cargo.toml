@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [[bin]]
 name="aoc22"
 path="src/aoc22.rs"
@@ -20,6 +19,7 @@ harness = false
 
 [features]
 dhat-heap = []
+fps = []
 
 [dependencies]
 divan = {workspace=true}
