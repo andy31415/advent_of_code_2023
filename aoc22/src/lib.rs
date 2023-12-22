@@ -18,6 +18,7 @@ use petgraph::{
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Brick {
+    pub idx: usize,
     pub start: IVec3,
     pub end: IVec3,
 }
@@ -277,11 +278,12 @@ fn line(s: &str) -> IResult<&str, (IVec3, IVec3)> {
 }
 
 pub fn parse_input(s: &str) -> Vec<Brick> {
-    let (r, i) = separated_list1(line_ending, line.map(|(start, end)| Brick { start, end }))
+    let (r, i) = separated_list1(line_ending, line.map(|(start, end)| Brick { start, end, idx: 0 }))
         .parse(s)
         .expect("Valid input");
     assert_eq!(r, "");
-    i
+
+    i.iter().enumerate().map(|(idx, b)| Brick{idx, ..*b}).collect()
 }
 
 pub fn part1(input: &str) -> usize {

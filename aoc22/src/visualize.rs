@@ -110,7 +110,7 @@ fn pan_orbit_camera(
             let yaw = Quat::from_rotation_y(-delta_x);
             let pitch = Quat::from_rotation_x(-delta_y);
             transform.rotation = yaw * transform.rotation; // rotate around global y axis
-            transform.rotation *= pitch; // rotate around local x axis
+            transform.rotation = transform.rotation * pitch; // rotate around local x axis
         } else if pan.length_squared() > 0.0 {
             any = true;
             // make panning distance independent of resolution and FOV,
@@ -275,7 +275,7 @@ fn load_data(
         // everything goes -1 to top
         let lower = Vec3::new(x.0 - 1.0, y.0 - 1.0, z.0 - 1.0) * SCALE;
         let upper = Vec3::new(x.1, y.1, z.1) * SCALE;
-        let h = ((idx % 20) * (360 / 20)) as f32;
+        let h = ((brick.idx % 20) * (360 / 20)) as f32;
 
         let item = PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::from_corners(lower, upper))),
