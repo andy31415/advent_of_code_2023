@@ -19,8 +19,8 @@ use petgraph::{
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Brick {
-    start: IVec3,
-    end: IVec3,
+    pub start: IVec3,
+    pub end: IVec3,
 }
 
 impl Debug for Brick {
