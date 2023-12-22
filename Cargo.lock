@@ -239,6 +239,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc22"
+version = "0.1.0"
+dependencies = [
+ "dhat",
+ "divan",
+ "glam",
+ "itertools 0.10.5",
+ "nom",
+ "nom-supreme",
+ "nom_locate",
+ "test-log",
+ "trace",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "aoc3"
 version = "0.1.0"
 dependencies = [
