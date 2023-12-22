@@ -259,16 +259,19 @@ fn parse_input(s: &str) -> Vec<Brick> {
 pub fn part1(input: &str) -> usize {
     let input = parse_input(input);
     let building = Building::new(input);
-    
+
     // let g = building.layout_graph();
     // println!("{:?}", Dot::with_config(&g, &[Config::EdgeNoLabel]));
 
-    building.bricks.iter()
-        .filter(|brick|
-           building.above_bricks(brick).iter().all(
-               |above| building.holding_up(above) > 1
-           )
-        )
+    building
+        .bricks
+        .iter()
+        .filter(|brick| {
+            building
+                .above_bricks(brick)
+                .iter()
+                .all(|above| building.holding_up(above) > 1)
+        })
         .count()
 }
 
