@@ -1,7 +1,6 @@
-use aoc22::{Brick, Building};
+use aoc22::Building;
 use bevy::{
     app::AppExit,
-    audio::Decodable,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
     window::PresentMode,
@@ -9,7 +8,6 @@ use bevy::{
 
 #[derive(Component, Debug)]
 struct BrickDisplay {
-    brick: Brick,
 }
 
 fn main() {
@@ -112,7 +110,7 @@ fn pan_orbit_camera(
             let yaw = Quat::from_rotation_y(-delta_x);
             let pitch = Quat::from_rotation_x(-delta_y);
             transform.rotation = yaw * transform.rotation; // rotate around global y axis
-            transform.rotation = transform.rotation * pitch; // rotate around local x axis
+            transform.rotation *= pitch; // rotate around local x axis
         } else if pan.length_squared() > 0.0 {
             any = true;
             // make panning distance independent of resolution and FOV,
@@ -150,8 +148,7 @@ fn pan_orbit_camera(
 
 fn get_primary_window_size(windows: &Query<&Window>) -> Vec2 {
     let window = windows.get_single().expect("has main window");
-    let window = Vec2::new(window.width() as f32, window.height() as f32);
-    window
+    Vec2::new(window.width(), window.height())
 }
 
 /// Spawn a camera like this
@@ -285,14 +282,12 @@ fn load_data(
             material: materials.add(Color::hsl(h, 1.0, 0.5).into()),
             ..default()
         };
-        commands.spawn((BrickDisplay { brick }, item));
+        commands.spawn((BrickDisplay{}, item));
     }
 }
 
 fn handle_exit(input: Res<Input<KeyCode>>, mut quit: EventWriter<AppExit>) {
-    if input.just_pressed(KeyCode::Escape) {
-        quit.send(AppExit);
-    } else if input.just_pressed(KeyCode::Q) {
+    if input.just_pressed(KeyCode::Escape) || input.just_pressed(KeyCode::Q) {
         quit.send(AppExit);
     }
 }

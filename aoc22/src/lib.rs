@@ -13,8 +13,7 @@ use nom::{
 };
 use nom_supreme::ParserExt;
 use petgraph::{
-    dot::{Config, Dot},
-    graph, Graph,
+    Graph,
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -54,8 +53,7 @@ impl Brick {
         if (self.end.y < other.start.y) || (other.end.y < self.start.y) {
             return false;
         }
-
-        return true;
+        true
     }
 }
 
@@ -142,7 +140,7 @@ impl Building {
         };
 
         // make sure lower z items drop first
-        input.sort_by(|a, b| a.bottom_z().cmp(&b.bottom_z()));
+        input.sort_by_key(|a| a.bottom_z());
 
         for brick in input {
             result.drop_brick(brick);
@@ -225,10 +223,8 @@ impl Building {
 
             // Check every brick above b
             for other in self.bricks.iter().filter(|o| o.bottom_z() == b.top_z() + 1) {
-                if self.below_bricks(other).iter().all(|x| removed.contains(x)) {
-                    if !removed.contains(other) {
-                        process.push_back(other);
-                    }
+                if self.below_bricks(other).iter().all(|x| removed.contains(x)) && !removed.contains(other) {
+                    process.push_back(other);
                 }
             }
         }
@@ -237,14 +233,14 @@ impl Building {
     }
 
     // Graph the nodes with "a->b" meaning "a keeps b afloat"
-    fn layout_graph(&self) -> Graph<String, ()> {
+    pub fn layout_graph(&self) -> Graph<String, ()> {
         let mut deps = Graph::new();
 
         let graph_nodes = self
             .bricks
             .iter()
             .enumerate()
-            .map(|(idx, b)| (idx, deps.add_node(idx_to_human(idx))))
+            .map(|(idx, _b)| (idx, deps.add_node(idx_to_human(idx))))
             .collect::<HashMap<_, _>>();
 
         for (k, idx1) in graph_nodes.iter() {
