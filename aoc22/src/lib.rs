@@ -9,7 +9,10 @@ use nom::{
     IResult, Parser,
 };
 use nom_supreme::ParserExt;
-use petgraph::{graph, Graph, dot::{Config, Dot}};
+use petgraph::{
+    dot::{Config, Dot},
+    graph, Graph,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct Brick {
@@ -178,6 +181,29 @@ impl Building {
         }
     }
 
+    /// Figures out how many bricks holds up the given brick
+    fn holding_up(&self, b: &Brick) -> usize {
+        if let Some(v) = self.by_top_z.get(&(b.bottom_z() - 1)) {
+            v.iter()
+                .map(|i| self.brick_with_index(*i))
+                .filter(|other| b.intesects_xy(other))
+                .count()
+        } else {
+            0
+        }
+    }
+
+    fn above_bricks(&self, b: &Brick) -> Vec<&Brick> {
+        if let Some(v) = self.by_bottom_z.get(&(b.top_z() + 1)) {
+            v.iter()
+                .map(|i| self.brick_with_index(*i))
+                .filter(|other| b.intesects_xy(other))
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
     // Graph the nodes with "a->b" meaning "a keeps b afloat"
     fn layout_graph(&self) -> Graph<String, ()> {
         let mut deps = Graph::new();
@@ -186,8 +212,7 @@ impl Building {
             .bricks
             .iter()
             .enumerate()
-            .map(|(idx, b)| (idx, deps.add_node(
-                        idx_to_human(idx))))
+            .map(|(idx, b)| (idx, deps.add_node(idx_to_human(idx))))
             .collect::<HashMap<_, _>>();
 
         for (k, idx1) in graph_nodes.iter() {
@@ -233,14 +258,18 @@ fn parse_input(s: &str) -> Vec<Brick> {
 
 pub fn part1(input: &str) -> usize {
     let input = parse_input(input);
-    let b = Building::new(input);
-
-    let g = b.layout_graph();
+    let building = Building::new(input);
     
+    // let g = building.layout_graph();
     // println!("{:?}", Dot::with_config(&g, &[Config::EdgeNoLabel]));
 
-
-    0
+    building.bricks.iter()
+        .filter(|brick|
+           building.above_bricks(brick).iter().all(
+               |above| building.holding_up(above) > 1
+           )
+        )
+        .count()
 }
 
 pub fn part2(_input: &str) -> usize {
@@ -266,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(part1(include_str!("../example.txt")), 0);
+        assert_eq!(part1(include_str!("../example.txt")), 5);
     }
 
     #[test]
