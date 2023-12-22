@@ -49,7 +49,15 @@ impl BrickColors {
         }
 
         let h = ((idx * 53) % 360) as f32;
-        let material = materials.add(Color::hsl(h, 1.0, 0.5).into());
+
+        let material = materials.add(
+            StandardMaterial {
+                base_color: Color::hsl(h, 1.0, 0.5),
+                double_sided: false,
+                ..default()
+            }
+
+            );
         self.colors.insert(idx, material.clone());
         material
     }
