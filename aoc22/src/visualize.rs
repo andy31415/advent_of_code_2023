@@ -3,7 +3,7 @@ use bevy::{
     app::AppExit,
     audio::Decodable,
     input::mouse::{MouseMotion, MouseWheel},
-    prelude::*,
+    prelude::*, window::PresentMode,
 };
 
 #[derive(Component, Debug)]
@@ -16,6 +16,7 @@ fn main() {
 
     app.add_plugins(DefaultPlugins)
         .add_systems(Startup, (load_floor, load_input, load_camera, load_light))
+        .add_systems(Startup, faster_present)
         .add_systems(Update, (handle_exit, pan_orbit_camera))
         .add_systems(Update, reload_data);
 
@@ -46,6 +47,12 @@ impl Default for PanOrbitCamera {
             upside_down: false,
         }
     }
+}
+
+fn faster_present(
+    mut windows: Query<&mut Window>,
+) {
+    windows.get_single_mut().expect("have window").present_mode = PresentMode::Mailbox;
 }
 
 /// Pan the camera with middle mouse click, zoom with scroll wheel, orbit with right mouse click.
