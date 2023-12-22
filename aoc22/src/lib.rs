@@ -224,11 +224,7 @@ impl Building {
             removed.insert(b);
 
             // Check every brick above b
-            for other in self
-                .bricks
-                .iter()
-                .filter(|o| o.bottom_z() == b.top_z() + 1)
-            {
+            for other in self.bricks.iter().filter(|o| o.bottom_z() == b.top_z() + 1) {
                 if self.below_bricks(other).iter().all(|x| removed.contains(x)) {
                     if !removed.contains(other) {
                         process.push_back(other);
