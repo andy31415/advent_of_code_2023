@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::Debug,
+};
 
 use glam::IVec3;
 use nom::{
@@ -183,13 +186,17 @@ impl Building {
 
     /// Figures out how many bricks holds up the given brick
     fn holding_up(&self, b: &Brick) -> usize {
+        self.below_bricks(b).len()
+    }
+
+    fn below_bricks(&self, b: &Brick) -> Vec<&Brick> {
         if let Some(v) = self.by_top_z.get(&(b.bottom_z() - 1)) {
             v.iter()
                 .map(|i| self.brick_with_index(*i))
                 .filter(|other| b.intesects_xy(other))
-                .count()
+                .collect()
         } else {
-            0
+            Vec::new()
         }
     }
 
@@ -202,6 +209,31 @@ impl Building {
         } else {
             Vec::new()
         }
+    }
+
+    fn fall_count_if_removed(&self, b: &Brick) -> usize {
+        // Figure out how many bricks would fall if this brick were removed
+        let mut removed = HashSet::new();
+        let mut process = VecDeque::new();
+
+        process.push_back(b);
+        while let Some(b) = process.pop_front() {
+            removed.insert(b);
+
+            // Check every brick above b
+            for other in self
+                .bricks
+                .iter()
+                .filter(|other| other.bottom_z() == b.top_z() + 1)
+            {
+                if self.below_bricks(other).iter().all(|x| removed.contains(x)) {
+                    process.push_back(other);
+                }
+            }
+        }
+
+        // Do not count the disintegrated brick
+        removed.len() - 1
     }
 
     // Graph the nodes with "a->b" meaning "a keeps b afloat"
@@ -275,9 +307,15 @@ pub fn part1(input: &str) -> usize {
         .count()
 }
 
-pub fn part2(_input: &str) -> usize {
-    // TODO: implement
-    0
+pub fn part2(input: &str) -> usize {
+    let input = parse_input(input);
+    let building = Building::new(input);
+
+    building
+        .bricks
+        .iter()
+        .map(|b| building.fall_count_if_removed(b))
+        .sum()
 }
 
 #[cfg(test)]
@@ -303,6 +341,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2(include_str!("../example.txt")), 7);
     }
 }
