@@ -18,7 +18,7 @@ use petgraph::{
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-struct Brick {
+pub struct Brick {
     start: IVec3,
     end: IVec3,
 }
@@ -59,15 +59,15 @@ impl Brick {
     }
 }
 
-struct Building {
-    bricks: Vec<Brick>,
+pub struct Building {
+    pub bricks: Vec<Brick>,
     by_top_z: HashMap<i32, Vec<usize>>, // z-index to brick index
     by_bottom_z: HashMap<i32, Vec<usize>>, // z-index to brick index
 }
 
 const LETTERS: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-fn idx_to_human(idx: usize) -> String {
+pub fn idx_to_human(idx: usize) -> String {
     let extra_idx = idx / LETTERS.len();
     let idx = idx % LETTERS.len();
 
@@ -134,7 +134,7 @@ impl Debug for Building {
 }
 
 impl Building {
-    fn new(mut input: Vec<Brick>) -> Self {
+    pub fn new(mut input: Vec<Brick>) -> Self {
         let mut result = Building {
             bricks: Vec::new(),
             by_top_z: HashMap::new(),
@@ -280,7 +280,7 @@ fn line(s: &str) -> IResult<&str, (IVec3, IVec3)> {
     separated_pair(vec3d, tag("~"), vec3d).parse(s)
 }
 
-fn parse_input(s: &str) -> Vec<Brick> {
+pub fn parse_input(s: &str) -> Vec<Brick> {
     let (r, i) = separated_list1(line_ending, line.map(|(start, end)| Brick { start, end }))
         .parse(s)
         .expect("Valid input");
