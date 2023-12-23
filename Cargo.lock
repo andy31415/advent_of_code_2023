@@ -416,6 +416,8 @@ dependencies = [
  "itertools 0.12.0",
  "ndarray",
  "pathfinding",
+ "test-log",
+ "trace",
  "tracing",
  "tracing-subscriber",
 ]

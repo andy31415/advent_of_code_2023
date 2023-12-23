@@ -1,4 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
+
+use pathfinding::directed::dijkstra::dijkstra;
+use tracing::{info, instrument, trace};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum Direction {
@@ -9,6 +12,15 @@ enum Direction {
 }
 
 impl Direction {
+    fn all() -> [Direction; 4] {
+        [
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West,
+        ]
+    }
+
     fn inverse(&self) -> Direction {
         match self {
             Direction::North => Direction::South,
@@ -63,6 +75,14 @@ impl std::ops::Add<(i32, i32)> for Point {
     }
 }
 
+impl std::ops::Add<Direction> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Direction) -> Self::Output {
+        self + rhs.vec()
+    }
+}
+
 impl From<(i32, i32)> for Point {
     fn from((row, col): (i32, i32)) -> Self {
         Self { row, col }
@@ -73,6 +93,47 @@ struct Input {
     data: HashMap<Point, Cell>,
     rows: usize,
     cols: usize,
+}
+
+struct JunctionGraph {
+    junctions: HashSet<Point>,
+    distances: HashMap<Point, Vec<(Point, usize)>>,
+}
+
+impl JunctionGraph {
+    fn max_distance(&self, start: Point, end: Point) -> usize {
+        // Terrible algorighm, however since few junctions maybe it works
+        // on these maps ...
+        self.max_distance_rec(start, 0, end, HashSet::new())
+    }
+
+    #[instrument(skip_all)]
+    fn max_distance_rec(
+        &self,
+        start: Point,
+        so_far: usize,
+        end: Point,
+        visited: HashSet<Point>,
+    ) -> usize {
+        trace!("{:?} distance {}", start, so_far);
+        let neighbours = match self.distances.get(&start) {
+            Some(v) => v,
+            None => return 0,
+        };
+
+        let mut m = so_far;
+
+        for (n, d) in neighbours.iter().filter(|(n, _)| !visited.contains(n)) {
+            if *n == end {
+                m = m.max(so_far + d)
+            } else {
+                let mut new_visited = visited.clone();
+                new_visited.insert(*n);
+                m = m.max(self.max_distance_rec(*n, so_far + d, end, new_visited));
+            }
+        }
+        m
+    }
 }
 
 impl Input {
@@ -100,6 +161,21 @@ impl Input {
             }
         }
         Self { data, rows, cols }
+    }
+
+    fn no_slopes(&self) -> Self {
+        let mut data = self.data.clone();
+        for (k, v) in data.iter_mut() {
+            if matches!(v, Cell::Slope(_)) {
+                *v = Cell::Empty;
+            }
+        }
+
+        Self {
+            data,
+            rows: self.rows,
+            cols: self.cols,
+        }
     }
 
     /// Allow going from [p] towards direction [d]
@@ -149,58 +225,60 @@ impl Input {
     }
 
     fn longest_path(&self, start: Point, end: Point) -> usize {
-        /*
         // Nodes are start, end and any junction
-        let mut nodes = Vec::new();
-        nodes.push(start);
-        nodes.push(end);
+        let mut junctions = self
+            .data
+            .iter()
+            .filter(|(p, v)| {
+                **v != Cell::Wall
+                    && p.row > 0
+                    && p.col > 0
+                    && p.row + 1 < self.rows as i32
+                    && p.col + 1 < self.cols as i32
+            })
+            .map(|(p, v)| *p)
+            .filter(|p| self.is_junction(*p))
+            .collect::<HashSet<_>>();
+        junctions.insert(start);
+        junctions.insert(end);
+        info!("Junctions: {:?}", junctions);
 
-        nodes.append(
-            &mut self
-                .data
-                .iter()
-                .filter(|(p, v)| {
-                    **v != Cell::Wall
-                        && p.row > 0
-                        && p.col > 0
-                        && p.row + 1 < self.rows as i32
-                        && p.col + 1 < self.cols as i32
-                })
-                .map(|(p, v)| *p)
-                .filter(|p| self.is_junction(*p))
-                .collect::<Vec<_>>(),
-        );
-        */
-        
-        // This makes a STRONG assumption that there are no loops and 
-        // the entire map is directed ... otherwise this is NP-complete ...
-        let mut distances = HashMap::new();
-        
-        let mut q = VecDeque::new();
-        q.push_back((start, Direction::South, 0 as usize));
-        
-        while let Some((p, entry, distance)) = q.pop_front() {
-            match distances.get_mut(&p) {
-                Some(old_distance) if *old_distance < distance => {
-                    *old_distance = distance;
-                    q.push_back((p, entry, distance)); // new top distance, find again
-                }
-                None => {
-                    distances.insert(p, distance);
-                }
-                _ => (),
-            };
-            
-            for d in [Direction::East, Direction::South, Direction::West, Direction::North] {
-                if d == entry.inverse() {
-                    continue
-                }
-                if self.allow(p, d) {
-                    q.push_back((p + d.vec(), d, distance + 1));
+        let mut distances: HashMap<Point, Vec<(Point, usize)>> = HashMap::new();
+
+        // assume this is a graph. Figure out the length of a DIRECT path from each
+        // junction to another junction
+        for a in junctions.iter() {
+            for b in junctions.iter().filter(|x| *x != a) {
+                if let Some(r) = dijkstra(
+                    a,
+                    |x| {
+                        Direction::all()
+                            .iter()
+                            .filter(|d| self.allow(*x, **d))
+                            .map(|d| *x + *d)
+                            .filter(|p| p == a || p == b || !junctions.contains(p))
+                            .map(|p| (p, 1usize))
+                            .collect::<Vec<_>>()
+                    },
+                    |p| p == b,
+                ) {
+                    trace!("TODO: path from {:?} to {:?} == {}", a, b, r.1);
+                    match distances.get_mut(a) {
+                        Some(v) => v.push((*b, r.1)),
+                        None => {
+                            distances.insert(*a, vec![(*b, r.1)]);
+                        }
+                    }
                 }
             }
         }
-        *distances.get(&end).expect("has path to end")
+
+        let g = JunctionGraph {
+            junctions,
+            distances,
+        };
+
+        g.max_distance(start, end)
     }
 }
 
@@ -213,21 +291,24 @@ pub fn part1(input: &str) -> usize {
 }
 
 pub fn part2(input: &str) -> usize {
-    // TODO: implement
-    0
+    let input = Input::parse(input).no_slopes();
+    input.longest_path(
+        (0, 1).into(),
+        ((input.rows - 1) as i32, (input.cols - 2) as i32).into(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
+    #[test_log::test]
     fn test_part1() {
         assert_eq!(part1(include_str!("../example.txt")), 94);
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2(include_str!("../example.txt")), 154);
     }
 }
