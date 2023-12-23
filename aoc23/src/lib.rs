@@ -202,10 +202,6 @@ impl Input {
     fn is_junction(&self, p: Point) -> bool {
         let mut cnt = 0;
 
-        if p == (5, 3).into() {
-            eprintln!("P: {:?}", p);
-        }
-
         for d in [
             Direction::North,
             Direction::South,
