@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 use pathfinding::directed::dijkstra::dijkstra;
 use tracing::{info, instrument, trace};
@@ -96,7 +96,6 @@ struct Input {
 }
 
 struct JunctionGraph {
-    junctions: HashSet<Point>,
     distances: HashMap<Point, Vec<(Point, usize)>>,
 }
 
@@ -104,7 +103,7 @@ impl JunctionGraph {
     fn max_distance(&self, start: Point, end: Point) -> usize {
         // Terrible algorighm, however since few junctions maybe it works
         // on these maps ...
-        self.max_distance_rec(start, 0, end, HashSet::new())
+        self.max_distance_rec(start, 0, end, &mut HashSet::new())
     }
 
     #[instrument(skip_all)]
@@ -113,7 +112,7 @@ impl JunctionGraph {
         start: Point,
         so_far: usize,
         end: Point,
-        visited: HashSet<Point>,
+        visited: &mut HashSet<Point>,
     ) -> usize {
         trace!("{:?} distance {}", start, so_far);
         let neighbours = match self.distances.get(&start) {
@@ -123,13 +122,13 @@ impl JunctionGraph {
 
         let mut m = so_far;
 
-        for (n, d) in neighbours.iter().filter(|(n, _)| !visited.contains(n)) {
+        for (n, d) in neighbours.iter().filter(|(n, _)| !visited.contains(n)).collect::<Vec<_>>() {
             if *n == end {
                 m = m.max(so_far + d)
             } else {
-                let mut new_visited = visited.clone();
-                new_visited.insert(*n);
-                m = m.max(self.max_distance_rec(*n, so_far + d, end, new_visited));
+                visited.insert(*n);
+                m = m.max(self.max_distance_rec(*n, so_far + d, end, visited));
+                visited.remove(n);
             }
         }
         m
@@ -165,7 +164,7 @@ impl Input {
 
     fn no_slopes(&self) -> Self {
         let mut data = self.data.clone();
-        for (k, v) in data.iter_mut() {
+        for (_, v) in data.iter_mut() {
             if matches!(v, Cell::Slope(_)) {
                 *v = Cell::Empty;
             }
@@ -232,7 +231,7 @@ impl Input {
                     && p.row + 1 < self.rows as i32
                     && p.col + 1 < self.cols as i32
             })
-            .map(|(p, v)| *p)
+            .map(|(p, _)| *p)
             .filter(|p| self.is_junction(*p))
             .collect::<HashSet<_>>();
         junctions.insert(start);
@@ -268,9 +267,8 @@ impl Input {
                 }
             }
         }
-
+        
         let g = JunctionGraph {
-            junctions,
             distances,
         };
 
