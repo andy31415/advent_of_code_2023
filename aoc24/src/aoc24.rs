@@ -16,7 +16,7 @@ fn main() {
         .with(EnvFilter::from_default_env())
         .init();
 
-    let s1 = aoc24::part1(include_str!("../input.txt"));
+    let s1 = aoc24::part1(include_str!("../input.txt"), (200000000000000_f32, 400000000000000_f32));
     println!("Part 1: {}", s1);
 
     let s2 = aoc24::part2(include_str!("../input.txt"));
