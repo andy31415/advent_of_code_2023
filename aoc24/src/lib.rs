@@ -111,7 +111,18 @@ pub fn part1(input: &str, range: (f32, f32)) -> usize {
     cnt
 }
 
-pub fn part2(_input: &str) -> usize {
+pub fn part2(input: &str) -> usize {
+    let stones = parse::input(input);
+    
+    // steps:
+    //  - any 3 lines (except parallel!) should uniquely identify the line direction
+    //  - closest intersection point determines the position (by time)
+    
+    let a = stones.get(0).expect("has sufficient data (1)");
+    let b = stones.get(1).expect("has sufficient data (2)");
+    let c = stones.get(2).expect("has sufficient data (3)");
+    
+    
     // TODO: implement
     0
 }
@@ -144,8 +155,8 @@ mod tests {
         assert_eq!(part1(include_str!("../example.txt"), (7_f32, 27_f32)), 2);
     }
 
-    #[test]
+    #[test_log::test]
     fn test_part2() {
-        assert_eq!(part2(include_str!("../example.txt")), 0);
+        assert_eq!(part2(include_str!("../example.txt")), 47);
     }
 }
