@@ -54,13 +54,11 @@ with open(sys.argv[1], "rt") as f:
         s = [x for x in map(float, s.split(", "))][:]
         d = [x for x in map(float, d.split(", "))][:]
         data.append(H(s,d))
-        
-for h in data:
-   print(h)
 
 # figure out times and symbolics... all possible equations
 s = Symbols()
-s.add_all(data)
+#s.add_all(data)
+s.add_all(data[20:30])
     
 print("SYMBOLS ADDED: ", s.s)
 result = s.solve()
