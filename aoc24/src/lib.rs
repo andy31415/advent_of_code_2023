@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use glam::{Mat2, Vec2, Vec3};
-use tracing::{info, instrument, trace};
+use tracing::{info, instrument};
 
 #[derive(PartialEq, Copy, Clone)]
 struct Hailstone {
@@ -111,7 +111,7 @@ pub fn part1(input: &str, range: (f32, f32)) -> usize {
     cnt
 }
 
-pub fn part2(input: &str) -> usize {
+pub fn part2(_input: &str) -> usize {
     // TODO: implement
     0
 }
