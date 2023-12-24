@@ -78,10 +78,10 @@ impl Hailstone {
             return None;
         }
         let t = m.inverse() * (s2 - s1);
-        
+
         if t.x < 0.0 || t.y < 0.0 {
             // interesect in the past
-            return None
+            return None;
         }
 
         // intersection. Both should be equal:
@@ -95,20 +95,19 @@ pub fn part1(input: &str, range: (f32, f32)) -> usize {
     let stones = parse::input(input);
 
     info!("Stones: {}", stones.len());
-    
+
     let mut cnt = 0;
 
     for (idx, a) in stones.iter().enumerate() {
         for b in stones.iter().skip(idx + 1) {
             if let Some(i) = a.intersect_2d(b) {
-                if i.x >= range.0 && i.x <= range.1 && i.y >= range.0 && i.y <= range.1  {
-                    cnt+= 1;
+                if i.x >= range.0 && i.x <= range.1 && i.y >= range.0 && i.y <= range.1 {
+                    cnt += 1;
                 }
-
             }
         }
     }
-    
+
     cnt
 }
 
