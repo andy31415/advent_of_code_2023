@@ -27,6 +27,8 @@ test-log = { version = "0.2.14", features = ["log", "trace"] }
 nom.workspace = true
 nom-supreme = "0.8.0"
 nom_locate = "4.2.0"
+ndarray = "0.15.6"
+glam.workspace = true
 
 [dev-dependencies]
 itertools = {workspace=true}

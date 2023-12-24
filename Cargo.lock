@@ -428,7 +428,9 @@ version = "0.1.0"
 dependencies = [
  "dhat",
  "divan",
+ "glam",
  "itertools 0.10.5",
+ "ndarray",
  "nom",
  "nom-supreme",
  "nom_locate",
