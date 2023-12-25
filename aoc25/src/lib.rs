@@ -1,12 +1,16 @@
 use std::collections::{HashSet, VecDeque};
 
+use indicatif::ParallelProgressIterator;
 use bimap::BiMap;
+use indicatif::ProgressBar;
 use itertools::Itertools;
 use petgraph::{
     algo::{connected_components, has_path_connecting, min_spanning_tree},
     data::Element,
     graph::NodeIndex,
 };
+use rand::{seq::SliceRandom, thread_rng};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 mod parse {
     pub fn input(s: &str) -> Vec<(&str, Vec<&str>)> {
@@ -100,36 +104,57 @@ pub fn part1(input: &str) -> usize {
         .filter(|(a, b)| !has_path_connecting(&g1, *a, *b, None))
         .collect::<Vec<_>>();
 
-    for c in choices.iter().combinations(3) {
-        g1 = data.graph.clone();
-        let a = c.get(0).expect("3 items");
-        let b = c.get(1).expect("3 items");
-        let c = c.get(2).expect("3 items");
+    let mut tests = choices
+        .iter()
+        .combinations(3)
+        .map(|v| {
+            (
+                ***v.get(0).expect("3 items"),
+                ***v.get(1).expect("3 items"),
+                ***v.get(2).expect("3 items"),
+            )
+        })
+        .collect::<Vec<_>>();
 
-        g1.remove_edge(g1.find_edge(a.0, a.1).expect("valid edge 1"));
-        g1.remove_edge(g1.find_edge(b.0, b.1).expect("valid edge 2"));
-        g1.remove_edge(g1.find_edge(c.0, c.1).expect("valid edge 3"));
+    tests.shuffle(&mut thread_rng());
 
-        if connected_components(&g1) == 2 {
-            eprintln!("FOUND:");
-            eprintln!(
-                "   {:?} - {:?}",
-                data.node_map.get_by_right(&a.0),
-                data.node_map.get_by_right(&a.1)
-            );
-            eprintln!(
-                "   {:?} - {:?}",
-                data.node_map.get_by_right(&b.0),
-                data.node_map.get_by_right(&b.1)
-            );
-            eprintln!(
-                "   {:?} - {:?}",
-                data.node_map.get_by_right(&b.0),
-                data.node_map.get_by_right(&c.1)
-            );
-            break;
-        }
-    }
+    let s = tests
+        .par_iter()
+        .progress_count(tests.len() as u64)
+        .find_map_any(|(a, b, c)| {
+            let mut g1 = data.graph.clone();
+            g1.remove_edge(g1.find_edge(a.0, a.1).expect("valid edge 1"));
+            g1.remove_edge(g1.find_edge(b.0, b.1).expect("valid edge 2"));
+            g1.remove_edge(g1.find_edge(c.0, c.1).expect("valid edge 3"));
+
+            if connected_components(&g1) == 2 {
+                eprintln!("FOUND:");
+                eprintln!(
+                    "   {:?} - {:?}",
+                    data.node_map.get_by_right(&a.0),
+                    data.node_map.get_by_right(&a.1)
+                );
+                eprintln!(
+                    "   {:?} - {:?}",
+                    data.node_map.get_by_right(&b.0),
+                    data.node_map.get_by_right(&b.1)
+                );
+                eprintln!(
+                    "   {:?} - {:?}",
+                    data.node_map.get_by_right(&b.0),
+                    data.node_map.get_by_right(&c.1)
+                );
+                Some((a, b, c))
+            } else {
+                None
+            }
+        });
+
+    let mut g1 = data.graph.clone();
+    let (a, b, c) = s.expect("has solution");
+    g1.remove_edge(g1.find_edge(a.0, a.1).expect("valid edge 1"));
+    g1.remove_edge(g1.find_edge(b.0, b.1).expect("valid edge 2"));
+    g1.remove_edge(g1.find_edge(c.0, c.1).expect("valid edge 3"));
 
     // at this point g1 has the components ...
     let mut s1 = HashSet::new();
