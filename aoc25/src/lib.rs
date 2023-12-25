@@ -3,19 +3,17 @@ use std::collections::{HashSet, VecDeque};
 use bimap::BiMap;
 use itertools::Itertools;
 use petgraph::{
-    algo::{connected_components, min_spanning_tree, has_path_connecting},
+    algo::{connected_components, has_path_connecting, min_spanning_tree},
     data::Element,
-    dot::{Config, Dot},
     graph::NodeIndex,
-    visit::IntoEdges, adj::EdgeIndex,
 };
 
 mod parse {
     pub fn input(s: &str) -> Vec<(&str, Vec<&str>)> {
-        s.split("\n")
+        s.split('\n')
             .map(|l| {
                 let (k, v) = l.split_once(':').expect("have valid assign");
-                (k, v.trim().split(" ").map(|s| s.trim()).collect())
+                (k, v.trim().split(' ').map(|s| s.trim()).collect())
             })
             .collect()
     }
@@ -75,7 +73,6 @@ pub fn part1(input: &str) -> usize {
     }
     println!("{:#?}", Dot::with_config(&g1, &[Config::EdgeNoLabel]));
     */
-    
 
     let mut removed_edges = HashSet::new();
 
@@ -86,38 +83,50 @@ pub fn part1(input: &str) -> usize {
                 Element::Edge {
                     source,
                     target,
-                    weight,
+                    weight: _,
                 } => Some((NodeIndex::new(source), NodeIndex::new(target))),
                 _ => None,
             })
             .collect::<Vec<_>>();
 
         for (a, b) in edges {
-            removed_edges.insert((a,b));
+            removed_edges.insert((a, b));
             g1.remove_edge(g1.find_edge(a, b).expect("valid edge"));
         }
     }
 
-    let choices = removed_edges.iter().filter(|(a,b)| 
-        !has_path_connecting(&g1, *a, *b, None)
-    ).collect::<Vec<_>>();
-    
+    let choices = removed_edges
+        .iter()
+        .filter(|(a, b)| !has_path_connecting(&g1, *a, *b, None))
+        .collect::<Vec<_>>();
+
     for c in choices.iter().combinations(3) {
         g1 = data.graph.clone();
         let a = c.get(0).expect("3 items");
         let b = c.get(1).expect("3 items");
         let c = c.get(2).expect("3 items");
-        
+
         g1.remove_edge(g1.find_edge(a.0, a.1).expect("valid edge 1"));
         g1.remove_edge(g1.find_edge(b.0, b.1).expect("valid edge 2"));
         g1.remove_edge(g1.find_edge(c.0, c.1).expect("valid edge 3"));
-        
 
         if connected_components(&g1) == 2 {
             eprintln!("FOUND:");
-            eprintln!("   {:?} - {:?}", data.node_map.get_by_right(&a.0), data.node_map.get_by_right(&a.1));
-            eprintln!("   {:?} - {:?}", data.node_map.get_by_right(&b.0), data.node_map.get_by_right(&b.1));
-            eprintln!("   {:?} - {:?}", data.node_map.get_by_right(&b.0), data.node_map.get_by_right(&c.1));
+            eprintln!(
+                "   {:?} - {:?}",
+                data.node_map.get_by_right(&a.0),
+                data.node_map.get_by_right(&a.1)
+            );
+            eprintln!(
+                "   {:?} - {:?}",
+                data.node_map.get_by_right(&b.0),
+                data.node_map.get_by_right(&b.1)
+            );
+            eprintln!(
+                "   {:?} - {:?}",
+                data.node_map.get_by_right(&b.0),
+                data.node_map.get_by_right(&c.1)
+            );
             break;
         }
     }
@@ -141,10 +150,10 @@ pub fn part1(input: &str) -> usize {
     }
 
     eprintln!("{} out of {}", s1.len(), data.node_map.len());
-    s1.len()*(data.node_map.len() - s1.len())
+    s1.len() * (data.node_map.len() - s1.len())
 }
 
-pub fn part2(input: &str) -> usize {
+pub fn part2(_input: &str) -> usize {
     // TODO: implement
     0
 }
